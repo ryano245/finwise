@@ -1,0 +1,53 @@
+# =========================
+# Node.js / JavaScript
+# =========================
+backend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+.pnpm-debug.log
+dist/
+build/
+.cache/
+.next/
+out/
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# FastAPI cache & data files
+*.sqlite3
+*.db
+
+# =========================
+# OS / Editor Junk
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# =========================
+# Environment & Secrets
+# =========================
+.env
+.env.*
+*.pem
+*.key
