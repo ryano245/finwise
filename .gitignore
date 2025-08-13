@@ -49,5 +49,6 @@ Thumbs.db
 # =========================
 .env
 .env.*
+/backend/.env
 *.pem
 *.key
