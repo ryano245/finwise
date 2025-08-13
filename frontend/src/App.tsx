@@ -7,8 +7,8 @@ interface Budget {
   month: string;
   totalBudget: number;
   categories: {[key: string]: number};
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface Expense {
@@ -17,7 +17,7 @@ interface Expense {
   category: string;
   description: string;
   date: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
 interface CategorySummary {
@@ -266,8 +266,8 @@ function App() {
         month: currentMonth,
         totalBudget,
         categories,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
       
       // Save to localStorage
@@ -291,7 +291,7 @@ function App() {
         category: expenseCategory,
         description: expenseDescription,
         date: new Date().toISOString().split('T')[0],
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       };
       
       const updatedExpenses = [...expenses, newExpense];
@@ -458,7 +458,6 @@ function App() {
             </div>
           </section>
         )}
-
         {/* Recent Expenses */}
         {expenses.length > 0 && (
           <section className="recent-expenses">
