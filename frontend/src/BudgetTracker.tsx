@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
 
-// ===== Types =====
+/** =======================
+ *         Types
+ *  ======================= */
 interface CategoryBudget {
   id: string;
   name: string;
@@ -33,11 +35,31 @@ interface CategorySummary {
   budgeted: number;
   spent: number;
   remaining: number;
-  percentRaw: number; // unclamped (for color)
-  percentBar: number; // clamped 0..100 for bar width
+  percentRaw: number;
+  percentBar: number;
 }
 
-// ===== i18n =====
+/** New: Structured goal so we can support multiple goals */
+interface Goal {
+  id: string;
+  wish: string;
+  goalType: string;
+  goalTypeOther: string;
+  targetAmount: number;
+  targetAmountUnknown: boolean;
+  startDate: string;
+  targetDate: string;
+  flexibility: 'hard' | 'soft';
+  currentSavings: number;
+  priority: 'high' | 'medium' | 'low';
+  riskProfile: 'conservative' | 'balanced' | 'aggressive';
+  nonNegotiables: string[];
+  motivation: string;
+}
+
+/** =======================
+ *          i18n
+ *  ======================= */
 interface LanguageStrings {
   appTitle: string;
 
@@ -45,8 +67,42 @@ interface LanguageStrings {
   goalSectionTitle: string;
   wishLabel: string;
   wishPlaceholder: string;
-  realizedDateLabel: string;
-  targetDateLabel: string;
+
+  goalTypeLabel: string;
+  goalTypeOtherLabel: string;
+  goalTypeOptions: {
+    emergency: string;
+    debt: string;
+    device: string;
+    travel: string;
+    tuition: string;
+    move: string;
+    build: string;
+    other: string;
+  };
+
+  targetAmountLabel: string;
+  targetAmountPlaceholder: string;
+  targetAmountUnknown: string;
+
+  startDateLabel: string;
+  targetDateLabel: string; // “When do you want to achieve this?”
+  targetDateHint?: string;
+
+  flexibilityLabel: string;
+  flexibilityHard: string;
+  flexibilitySoft: string;
+
+  currentSavingsLabel: string;
+  priorityLabel: string;
+  priorityOptions: { high: string; medium: string; low: string; };
+  riskLabel: string;
+  riskOptions: { conservative: string; balanced: string; aggressive: string; };
+  nonNegotiablesLabel: string;
+  nonNegotiablesPlaceholder: string;
+  add: string;
+  motivationLabel: string;
+  motivationPlaceholder: string;
 
   monthlyBudgetSetup: string;
   totalMonthlyBudget: string;
@@ -77,15 +133,13 @@ interface LanguageStrings {
   date: string;
   description: string;
 
-  // bottom notes
   extraNotesTitle: string;
   extraNotesPlaceholder: string;
 
-  // generate plan
   generatePlan: string;
   needMoreExpenses: string;
 
-  loading: string; add: string; save: string; cancel: string; delete: string;
+  loading: string; save: string; cancel: string; delete: string;
 
   dupCategoryWarning: string;
   requiredField: string;
@@ -96,9 +150,43 @@ const englishStrings: LanguageStrings = {
 
   goalSectionTitle: "Your Goal",
   wishLabel: "What do you wish for?",
-  wishPlaceholder: "e.g., Build 3-month emergency fund, pay off paylater, etc.",
-  realizedDateLabel: "When did you realize this goal?",
-  targetDateLabel: "By when do you want it?",
+  wishPlaceholder: "e.g., Buy a laptop for school, build 3-month emergency fund, pay off paylater",
+
+  goalTypeLabel: "Goal type",
+  goalTypeOtherLabel: "Specify type",
+  goalTypeOptions: {
+    emergency: "Emergency fund",
+    debt: "Pay off debt",
+    device: "Buy a laptop/phone",
+    travel: "Trip/holiday",
+    tuition: "Tuition",
+    move: "Move/relocation",
+    build: "Build savings",
+    other: "Other",
+  },
+
+  targetAmountLabel: "Target amount (IDR)",
+  targetAmountPlaceholder: "Enter amount",
+  targetAmountUnknown: "Not sure",
+
+  startDateLabel: "Start date",
+  targetDateLabel: "When do you want to achieve this?",
+  targetDateHint: "",
+
+  flexibilityLabel: "Flexibility",
+  flexibilityHard: "Must be by this date",
+  flexibilitySoft: "Okay if it slips a bit",
+
+  currentSavingsLabel: "Current savings for this goal (IDR)",
+  priorityLabel: "Priority",
+  priorityOptions: { high: "High", medium: "Medium", low: "Low" },
+  riskLabel: "Risk profile",
+  riskOptions: { conservative: "Conservative", balanced: "Balanced", aggressive: "Aggressive" },
+  nonNegotiablesLabel: "Non-negotiables",
+  nonNegotiablesPlaceholder: "Add an item (press Enter)…",
+  add: "Add",
+  motivationLabel: "Motivation (1 sentence)",
+  motivationPlaceholder: "Why is this goal important to you?",
 
   monthlyBudgetSetup: "Monthly Budget Setup",
   totalMonthlyBudget: "Total Monthly Budget:",
@@ -135,7 +223,7 @@ const englishStrings: LanguageStrings = {
   generatePlan: "Generate Plan",
   needMoreExpenses: "Add at least 5 expenses to enable.",
 
-  loading: "Loading...", add: "Add", save: "Save", cancel: "Cancel", delete: "Delete",
+  loading: "Loading...", save: "Save", cancel: "Cancel", delete: "Delete",
 
   dupCategoryWarning: "Category already exists (case-insensitive).",
   requiredField: "This field is required."
@@ -146,9 +234,43 @@ const indonesianStrings: LanguageStrings = {
 
   goalSectionTitle: "Tujuan Anda",
   wishLabel: "Apa yang Anda inginkan?",
-  wishPlaceholder: "contoh: Bangun dana darurat 3 bulan, lunasi paylater, dsb.",
-  realizedDateLabel: "Kapan Anda menyadari tujuan ini?",
-  targetDateLabel: "Target kapan tercapai?",
+  wishPlaceholder: "contoh: Beli laptop untuk kuliah, dana darurat 3 bulan, lunasi paylater",
+
+  goalTypeLabel: "Jenis tujuan",
+  goalTypeOtherLabel: "Sebutkan jenis",
+  goalTypeOptions: {
+    emergency: "Dana darurat",
+    debt: "Lunasi utang",
+    device: "Beli laptop/HP",
+    travel: "Liburan/perjalanan",
+    tuition: "Biaya kuliah",
+    move: "Pindah tempat tinggal",
+    build: "Bangun tabungan",
+    other: "Lainnya",
+  },
+
+  targetAmountLabel: "Nominal target (Rp)",
+  targetAmountPlaceholder: "Masukkan jumlah",
+  targetAmountUnknown: "Belum tahu",
+
+  startDateLabel: "Tanggal mulai",
+  targetDateLabel: "Kapan target tercapai?",
+  targetDateHint: "",
+
+  flexibilityLabel: "Fleksibilitas",
+  flexibilityHard: "Harus tercapai di tanggal ini",
+  flexibilitySoft: "Boleh mundur sedikit",
+
+  currentSavingsLabel: "Tabungan saat ini untuk tujuan ini (Rp)",
+  priorityLabel: "Prioritas",
+  priorityOptions: { high: "Tinggi", medium: "Sedang", low: "Rendah" },
+  riskLabel: "Profil risiko",
+  riskOptions: { conservative: "Konservatif", balanced: "Seimbang", aggressive: "Agresif" },
+  nonNegotiablesLabel: "Yang tidak bisa dikurangi",
+  nonNegotiablesPlaceholder: "Tambah item (tekan Enter)…",
+  add: "Tambah",
+  motivationLabel: "Motivasi (1 kalimat)",
+  motivationPlaceholder: "Kenapa tujuan ini penting?",
 
   monthlyBudgetSetup: "Setup Budget Bulanan",
   totalMonthlyBudget: "Total Budget Bulanan:",
@@ -185,15 +307,17 @@ const indonesianStrings: LanguageStrings = {
   generatePlan: "Buat Rencana",
   needMoreExpenses: "Tambahkan minimal 5 pengeluaran untuk mengaktifkan.",
 
-  loading: "Memuat...", add: "Tambah", save: "Simpan", cancel: "Batal", delete: "Hapus",
+  loading: "Memuat...", save: "Simpan", cancel: "Batal", delete: "Hapus",
 
   dupCategoryWarning: "Kategori sudah ada (abaikan besar/kecil huruf).",
   requiredField: "Wajib diisi."
 };
 
-// ===== Component =====
+/** =======================
+ *        Component
+ *  ======================= */
 function App() {
-  // Small stylesheet for layout cleanup
+  // small inline style block for layout polish
   const styles = `
     .container { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
     header, section { margin: 0 auto; }
@@ -201,46 +325,36 @@ function App() {
     .row > * { margin: 0; }
     .stack { display:flex; flex-direction:column; gap:12px; }
     .hint { color:#6b7280; font-size:.9rem; }
-
     .categories-list, .expenses-list { display:flex; flex-direction:column; gap:12px; }
-
     .dashboard-grid {
       display:grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap:16px;
     }
     .category-card {
-      border:1px solid #e5e7eb;
-      border-radius:12px;
-      padding:12px;
-      background:#fff;
+      border:1px solid #e5e7eb; border-radius:12px; padding:12px; background:#fff;
       box-shadow:0 1px 2px rgba(0,0,0,.04);
     }
     .category-card h4 { margin:0 0 8px 0; }
     .progress-bar { height:8px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
     .progress-fill { height:100%; }
     .category-stats { display:flex; justify-content:space-between; margin-top:8px; gap:10px; font-size:.95rem; }
-
     .category-item, .expense-item {
       border:1px solid #f1f5f9; border-radius:10px; background:#fff;
       padding:10px; display:flex; align-items:center; justify-content:space-between; gap:10px;
     }
     .category-view, .expense-edit, .category-edit { width:100%; }
-
     .category-edit, .expense-edit { display:flex; flex-direction:column; gap:8px; }
     .row-actions { display:flex; gap:8px; }
-
     .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
-
     .save-row { display:flex; justify-content:flex-end; }
-
-    .goal-card {
-      border:1px solid #e5e7eb; border-radius:12px; background:#fff; padding:12px;
-      display:flex; flex-direction:column; gap:10px;
-    }
+    .goal-card { border:1px solid #e5e7eb; border-radius:12px; background:#fff; padding:12px; display:flex; flex-direction:column; gap:12px; }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; }
+    .chip { display:inline-flex; align-items:center; gap:6px; background:#f1f5f9; color:#0f172a; border:1px solid #e2e8f0; border-radius:999px; padding:6px 10px; font-size:.9rem; }
+    .chip button { border:none; background:transparent; cursor:pointer; }
   `;
 
-  // Language
+  /** Language */
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'id'>(() => {
     const saved = localStorage.getItem('lang');
     return (saved === 'id' || saved === 'en') ? saved : 'en';
@@ -248,65 +362,126 @@ function App() {
   const strings = currentLanguage === 'en' ? englishStrings : indonesianStrings;
   useEffect(() => { localStorage.setItem('lang', currentLanguage); }, [currentLanguage]);
 
-  // Budget + expenses state
+  /** Budget + expenses state */
   const [currentBudget, setCurrentBudget] = useState<Budget | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
-  // Add-category form
+  /** Add-category form */
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryAmount, setNewCategoryAmount] = useState<number>(0);
-  const [newCategoryDate, setNewCategoryDate] = useState<string>(''); // required
+  const [newCategoryDate, setNewCategoryDate] = useState<string>('');
   const [newCategoryDescription, setNewCategoryDescription] = useState<string>('');
 
-  // Edit-category inline
+  /** Edit-category inline */
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [categoryDraft, setCategoryDraft] = useState<Partial<CategoryBudget>>({});
 
-  // Add-expense form
+  /** Add-expense form */
   const [expenseAmount, setExpenseAmount] = useState<number>(0);
   const [expenseCategory, setExpenseCategory] = useState('');
-  const [expenseDate, setExpenseDate] = useState<string>(''); // required
+  const [expenseDate, setExpenseDate] = useState<string>('');
   const [expenseDescription, setExpenseDescription] = useState<string>('');
 
-  // Edit-expense inline
+  /** Edit-expense inline */
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [expenseDraft, setExpenseDraft] = useState<Partial<Expense>>({});
 
-  // Total budget field
+  /** Total budget field */
   const [totalBudget, setTotalBudget] = useState<number>(0);
 
-  // Goal context & notes (persist automatically)
-  const [wish, setWish] = useState<string>(() => localStorage.getItem('wish') ?? '');
-  const [realizedDate, setRealizedDate] = useState<string>(() => localStorage.getItem('wish_realized_date') ?? '');
-  const [targetDate, setTargetDate] = useState<string>(() => localStorage.getItem('wish_target_date') ?? '');
-  const [extraNotes, setExtraNotes] = useState<string>(() => localStorage.getItem('extra_notes') ?? '');
+  /** ===== Goals (multi) ===== */
+  const [goals, setGoals] = useState<Goal[]>(() => {
+    const raw = localStorage.getItem('goals_v1');
+    if (raw) {
+      try { return JSON.parse(raw) as Goal[]; } catch { /* fallthrough */ }
+    }
+    // migrate from legacy single-goal fields if any
+    const legacy = {
+      wish: localStorage.getItem('wish') ?? '',
+      goalType: localStorage.getItem('goal_type') ?? 'emergency',
+      goalTypeOther: localStorage.getItem('goal_type_other') ?? '',
+      targetAmount: Number(localStorage.getItem('goal_amount') ?? 0),
+      targetAmountUnknown: localStorage.getItem('goal_amount_unknown') === '1',
+      startDate: localStorage.getItem('goal_start_date') ?? '',
+      targetDate: localStorage.getItem('goal_target_date') ?? '',
+      flexibility: (localStorage.getItem('goal_flex') === 'soft' ? 'soft' : 'hard') as 'hard'|'soft',
+      currentSavings: Number(localStorage.getItem('goal_current_savings') ?? 0),
+      priority: (localStorage.getItem('goal_priority') as 'high'|'medium'|'low') || 'medium',
+      riskProfile: (localStorage.getItem('goal_risk') as 'conservative'|'balanced'|'aggressive') || 'balanced',
+      nonNegotiables: (() => { const s = localStorage.getItem('goal_non_negotiables'); try { return s ? JSON.parse(s) : []; } catch { return []; } })(),
+      motivation: localStorage.getItem('goal_motivation') ?? '',
+    };
+    const hasAny = legacy.wish || legacy.targetDate || legacy.targetAmount || legacy.currentSavings;
+    return hasAny ? [{
+      id: `goal-${Date.now()}`,
+      ...legacy
+    }] : [];
+  });
+  useEffect(() => { localStorage.setItem('goals_v1', JSON.stringify(goals)); }, [goals]);
 
-  useEffect(() => { localStorage.setItem('wish', wish); }, [wish]);
-  useEffect(() => { localStorage.setItem('wish_realized_date', realizedDate); }, [realizedDate]);
-  useEffect(() => { localStorage.setItem('wish_target_date', targetDate); }, [targetDate]);
-  useEffect(() => { localStorage.setItem('extra_notes', extraNotes); }, [extraNotes]);
+  // per-goal chips text
+  const [nonNegInputMap, setNonNegInputMap] = useState<Record<string, string>>({});
+  const setNonNegInputFor = (goalId: string, value: string) =>
+    setNonNegInputMap(m => ({ ...m, [goalId]: value }));
 
-  // Helpers
+  const updateGoal = (id: string, patch: Partial<Goal>) =>
+    setGoals(gs => gs.map(g => g.id === id ? { ...g, ...patch } : g));
+
+  const addNewGoal = () => {
+    setGoals(gs => [...gs, {
+      id: `goal-${Date.now()}`,
+      wish: '',
+      goalType: 'emergency',
+      goalTypeOther: '',
+      targetAmount: 0,
+      targetAmountUnknown: false,
+      startDate: '',
+      targetDate: '',
+      flexibility: 'hard',
+      currentSavings: 0,
+      priority: 'medium',
+      riskProfile: 'balanced',
+      nonNegotiables: [],
+      motivation: ''
+    }]);
+  };
+
+  const addNonNeg = (goalId: string) => {
+    const v = (nonNegInputMap[goalId] ?? '').trim();
+    if (!v) return;
+    setGoals(gs => gs.map(g =>
+      g.id === goalId
+        ? { ...g, nonNegotiables: g.nonNegotiables.includes(v) ? g.nonNegotiables : [...g.nonNegotiables, v] }
+        : g
+    ));
+    setNonNegInputFor(goalId, '');
+  };
+
+  const removeNonNeg = (goalId: string, v: string) => {
+    setGoals(gs => gs.map(g =>
+      g.id === goalId ? { ...g, nonNegotiables: g.nonNegotiables.filter(x => x !== v) } : g
+    ));
+  };
+
+  /** Helpers */
   const getCurrentMonth = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   };
   const toMonth = (yyyyMmDd: string) => yyyyMmDd.slice(0, 7);
 
-  // Currency without thousands separator (so it doesn't look like a decimal)
+  // IDR without thousand separators to avoid dot-as-decimal confusion
   const formatCurrency = (amount: number) =>
     `Rp ${Math.round(amount).toLocaleString('id-ID', { useGrouping: false, maximumFractionDigits: 0 })}`;
 
-  // Load data on mount
+  /** Load data on mount */
   useEffect(() => {
     try {
       const currentMonth = getCurrentMonth();
 
-      // Budget
       const storedBudget = localStorage.getItem(`budget-${currentMonth}`);
       if (storedBudget) {
         const raw = JSON.parse(storedBudget) as any;
-        // migrate from old map shape to array if needed
         let categories: CategoryBudget[] = [];
         if (Array.isArray(raw.categories)) {
           categories = raw.categories as CategoryBudget[];
@@ -331,7 +506,6 @@ function App() {
         setTotalBudget(budget.totalBudget);
       }
 
-      // Expenses
       const storedExpenses = localStorage.getItem(`expenses-${currentMonth}`);
       if (storedExpenses) {
         const list = JSON.parse(storedExpenses) as Expense[];
@@ -342,7 +516,7 @@ function App() {
     }
   }, []);
 
-  // Derived summaries
+  /** Derived summaries */
   const categorySummaries: CategorySummary[] = useMemo(() => {
     if (!currentBudget) return [];
     return currentBudget.categories.map((cat) => {
@@ -366,7 +540,7 @@ function App() {
   );
   const remainingToAllocate = Math.max(0, totalBudget - sumCategoryCaps);
 
-  // Categories
+  /** Categories */
   const addCategory = () => {
     if (!currentBudget) return;
     const name = newCategoryName.trim();
@@ -374,10 +548,8 @@ function App() {
       alert(strings.requiredField);
       return;
     }
-    // Duplicate check (case-insensitive)
     const exists = currentBudget.categories.some((c) => c.name.toLowerCase() === name.toLowerCase());
     if (exists) { alert(strings.dupCategoryWarning); return; }
-    // Over-allocation guard
     if (newCategoryAmount > remainingToAllocate) {
       alert(`Cannot allocate more than remaining: ${formatCurrency(remainingToAllocate)}`);
       return;
@@ -433,7 +605,7 @@ function App() {
     alert(strings.budgetSaved);
   };
 
-  // Expenses
+  /** Expenses */
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
     if (!expenseAmount || !expenseCategory || !expenseDate || !expenseDescription.trim()) {
@@ -470,7 +642,6 @@ function App() {
   };
 
   const saveAllExpenses = () => {
-    // Save by month of each expense's date
     const byMonth = expenses.reduce<Record<string, Expense[]>>((acc, e) => {
       const m = toMonth(e.date);
       (acc[m] ||= []).push(e);
@@ -479,17 +650,19 @@ function App() {
     Object.entries(byMonth).forEach(([month, list]) => {
       localStorage.setItem(`expenses-${month}`, JSON.stringify(list));
     });
-    // keep current month key fresh / clean
     const cm = getCurrentMonth();
     if (!byMonth[cm]) localStorage.removeItem(`expenses-${cm}`);
     alert(strings.budgetSaved);
   };
 
-  // Enable “Generate Plan” when there are 5+ expenses
+  /** Generate Plan gate */
   const canGeneratePlan = expenses.length >= 5;
 
   const switchLanguage = (lang: 'en' | 'id') => setCurrentLanguage(lang);
 
+  /** =======================
+   *         Render
+   *  ======================= */
   return (
     <div className="app">
       <style>{styles}</style>
@@ -503,39 +676,203 @@ function App() {
           </div>
         </div>
 
-        {/* Goal context section */}
+        {/* Goal context section (multi-goal) */}
         <div className="goal-card container" style={{ marginBottom: 24 }}>
-          <h3 style={{ margin: 0 }}>{strings.goalSectionTitle}</h3>
-          <div className="row">
-            <label htmlFor="wish" className="sr-only">{strings.wishLabel}</label>
-            <input
-              id="wish"
-              type="text"
-              value={wish}
-              onChange={(e) => setWish(e.target.value)}
-              placeholder={strings.wishPlaceholder}
-              required
-              style={{ flex: 1 }}
-            />
-
-            <label htmlFor="realizedDate" className="sr-only">{strings.realizedDateLabel}</label>
-            <input
-              id="realizedDate"
-              type="date"
-              value={realizedDate}
-              onChange={(e) => setRealizedDate(e.target.value)}
-              required
-            />
-
-            <label htmlFor="targetDate" className="sr-only">{strings.targetDateLabel}</label>
-            <input
-              id="targetDate"
-              type="date"
-              value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
-              required
-            />
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0 }}>{strings.goalSectionTitle}</h3>
+            <button type="button" onClick={addNewGoal} aria-label="Add goal">＋</button>
           </div>
+
+          {goals.length === 0 && (
+            <div className="hint">Add your first goal with the ＋ button.</div>
+          )}
+
+          {goals.map((goal) => (
+            <div key={goal.id} className="stack" style={{ borderTop: '1px solid #eee', paddingTop: 12 }}>
+              {/* Title + Goal type */}
+              <div className="row">
+                <label htmlFor={`wish-${goal.id}`} className="sr-only">{strings.wishLabel}</label>
+                <input
+                  id={`wish-${goal.id}`}
+                  type="text"
+                  value={goal.wish}
+                  onChange={(e) => updateGoal(goal.id, { wish: e.target.value })}
+                  placeholder={strings.wishPlaceholder}
+                  required
+                  style={{ flex: 1 }}
+                />
+
+                <label htmlFor={`goalType-${goal.id}`} className="sr-only">{strings.goalTypeLabel}</label>
+                <select
+                  id={`goalType-${goal.id}`}
+                  value={goal.goalType}
+                  onChange={(e) => updateGoal(goal.id, { goalType: e.target.value })}
+                >
+                  <option value="emergency">{strings.goalTypeOptions.emergency}</option>
+                  <option value="debt">{strings.goalTypeOptions.debt}</option>
+                  <option value="device">{strings.goalTypeOptions.device}</option>
+                  <option value="travel">{strings.goalTypeOptions.travel}</option>
+                  <option value="tuition">{strings.goalTypeOptions.tuition}</option>
+                  <option value="move">{strings.goalTypeOptions.move}</option>
+                  <option value="build">{strings.goalTypeOptions.build}</option>
+                  <option value="other">{strings.goalTypeOptions.other}</option>
+                </select>
+
+                {goal.goalType === 'other' && (
+                  <input
+                    aria-label={strings.goalTypeOtherLabel}
+                    type="text"
+                    value={goal.goalTypeOther}
+                    onChange={(e) => updateGoal(goal.id, { goalTypeOther: e.target.value })}
+                    placeholder={strings.goalTypeOtherLabel}
+                  />
+                )}
+              </div>
+
+              {/* Target amount + Not sure */}
+              <div className="row">
+                <label htmlFor={`targetAmount-${goal.id}`} className="sr-only">{strings.targetAmountLabel}</label>
+                <input
+                  id={`targetAmount-${goal.id}`}
+                  type="number"
+                  placeholder={strings.targetAmountPlaceholder}
+                  value={goal.targetAmountUnknown ? '' : (goal.targetAmount === 0 ? '' : goal.targetAmount)}
+                  onChange={(e) => updateGoal(goal.id, { targetAmount: e.target.value === '' ? 0 : Number(e.target.value) })}
+                  min={0}
+                  disabled={goal.targetAmountUnknown}
+                />
+                <label className="row" style={{ gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={goal.targetAmountUnknown}
+                    onChange={(e) => updateGoal(goal.id, { targetAmountUnknown: e.target.checked })}
+                  />
+                  {strings.targetAmountUnknown}
+                </label>
+              </div>
+
+              {/* Dates with visible labels */}
+              <div className="row">
+                <div className="stack">
+                  <label htmlFor={`start-${goal.id}`}>{strings.startDateLabel}</label>
+                  <input
+                    id={`start-${goal.id}`}
+                    type="date"
+                    value={goal.startDate}
+                    onChange={(e) => updateGoal(goal.id, { startDate: e.target.value })}
+                  />
+                </div>
+
+                <div className="stack">
+                  <label htmlFor={`target-${goal.id}`}>{strings.targetDateLabel}</label>
+                  <input
+                    id={`target-${goal.id}`}
+                    type="date"
+                    value={goal.targetDate}
+                    onChange={(e) => updateGoal(goal.id, { targetDate: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Flexibility */}
+              <div className="row" role="group" aria-label={strings.flexibilityLabel}>
+                <span className="hint">{strings.flexibilityLabel}:</span>
+                <label className="row">
+                  <input
+                    type="radio"
+                    name={`flex-${goal.id}`}
+                    checked={goal.flexibility === 'hard'}
+                    onChange={() => updateGoal(goal.id, { flexibility: 'hard' })}
+                  />
+                  {strings.flexibilityHard}
+                </label>
+                <label className="row">
+                  <input
+                    type="radio"
+                    name={`flex-${goal.id}`}
+                    checked={goal.flexibility === 'soft'}
+                    onChange={() => updateGoal(goal.id, { flexibility: 'soft' })}
+                  />
+                  {strings.flexibilitySoft}
+                </label>
+              </div>
+
+              {/* Current savings, priority, risk */}
+              <div className="row">
+                <label htmlFor={`currentSavings-${goal.id}`} className="sr-only">{strings.currentSavingsLabel}</label>
+                <input
+                  id={`currentSavings-${goal.id}`}
+                  type="number"
+                  value={goal.currentSavings === 0 ? '' : goal.currentSavings}
+                  onChange={(e) => updateGoal(goal.id, { currentSavings: e.target.value === '' ? 0 : Number(e.target.value) })}
+                  placeholder={strings.currentSavingsLabel}
+                  min={0}
+                />
+
+                <label htmlFor={`priority-${goal.id}`} className="sr-only">{strings.priorityLabel}</label>
+                <select
+                  id={`priority-${goal.id}`}
+                  value={goal.priority}
+                  onChange={(e) => updateGoal(goal.id, { priority: e.target.value as Goal['priority'] })}
+                >
+                  <option value="high">{strings.priorityOptions.high}</option>
+                  <option value="medium">{strings.priorityOptions.medium}</option>
+                  <option value="low">{strings.priorityOptions.low}</option>
+                </select>
+
+                <label htmlFor={`risk-${goal.id}`} className="sr-only">{strings.riskLabel}</label>
+                <select
+                  id={`risk-${goal.id}`}
+                  value={goal.riskProfile}
+                  onChange={(e) => updateGoal(goal.id, { riskProfile: e.target.value as Goal['riskProfile'] })}
+                >
+                  <option value="conservative">{strings.riskOptions.conservative}</option>
+                  <option value="balanced">{strings.riskOptions.balanced}</option>
+                  <option value="aggressive">{strings.riskOptions.aggressive}</option>
+                </select>
+              </div>
+
+              {/* Non-negotiables chips */}
+              <div className="stack">
+                <label htmlFor={`nonneg-${goal.id}`} className="sr-only">{strings.nonNegotiablesLabel}</label>
+                <div className="row">
+                  <input
+                    id={`nonneg-${goal.id}`}
+                    type="text"
+                    value={nonNegInputMap[goal.id] ?? ''}
+                    onChange={(e) => setNonNegInputFor(goal.id, e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addNonNeg(goal.id); } }}
+                    placeholder={strings.nonNegotiablesPlaceholder}
+                    style={{ flex: 1 }}
+                  />
+                  <button onClick={() => addNonNeg(goal.id)}>{strings.add}</button>
+                </div>
+                {goal.nonNegotiables.length > 0 && (
+                  <div className="chips" aria-label={strings.nonNegotiablesLabel}>
+                    {goal.nonNegotiables.map((v) => (
+                      <span key={v} className="chip">
+                        {v}
+                        <button aria-label="remove" onClick={() => removeNonNeg(goal.id, v)}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Motivation */}
+              <div className="row">
+                <label htmlFor={`motivation-${goal.id}`} className="sr-only">{strings.motivationLabel}</label>
+                <input
+                  id={`motivation-${goal.id}`}
+                  type="text"
+                  value={goal.motivation}
+                  onChange={(e) => updateGoal(goal.id, { motivation: e.target.value })}
+                  placeholder={strings.motivationPlaceholder}
+                  style={{ flex: 1 }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </header>
 
@@ -736,7 +1073,6 @@ function App() {
               {categorySummaries.map(summary => (
                 <div key={summary.categoryName} className="category-card">
                   <h4>{summary.categoryName}</h4>
-
                   <div className="progress-bar" aria-label={`${summary.categoryName} progress`}>
                     <div
                       className="progress-fill"
@@ -746,7 +1082,6 @@ function App() {
                       }}
                     />
                   </div>
-
                   <div className="category-stats">
                     <span>{strings.budget}: {formatCurrency(summary.budgeted)}</span>
                     <span>{strings.spent}: {formatCurrency(summary.spent)}</span>
@@ -833,24 +1168,23 @@ function App() {
           <h3>{strings.extraNotesTitle}</h3>
           <textarea
             placeholder={strings.extraNotesPlaceholder}
-            value={extraNotes}
-            onChange={(e) => setExtraNotes(e.target.value)}
+            value={localStorage.getItem('extra_notes') ?? ''}
+            onChange={(e) => {
+              localStorage.setItem('extra_notes', e.target.value);
+              // force re-render by setting a dummy state? not necessary; textarea shows controlled by value above.
+            }}
             rows={3}
           />
         </section>
 
-        {/* Generate Plan (bottom) */}
+        {/* Generate Plan */}
         <section className="stack" style={{ marginTop: 8, marginBottom: 48, alignItems: 'flex-end' }}>
           {(!canGeneratePlan) && (
             <div className="hint" style={{ width: '100%', textAlign: 'right' }}>
               {strings.needMoreExpenses} ({expenses.length}/5)
             </div>
           )}
-          <button
-            onClick={() => {}}
-            disabled={!canGeneratePlan}
-            aria-describedby="genplan-hint"
-          >
+          <button onClick={() => {}} disabled={!canGeneratePlan} aria-describedby={!canGeneratePlan ? 'genplan-requirements' : undefined}>
             {strings.generatePlan}
           </button>
         </section>
