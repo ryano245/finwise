@@ -1,365 +1,29 @@
+// frontend/src/BudgetTracker.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
 
-/** =======================
- *         Types
- *  ======================= */
-interface CategoryBudget {
-  id: string;
-  name: string;
-  amount: number;
-  date: string;        // YYYY-MM-DD
-  description: string; // unlimited length
-}
+import type { LanguageStrings } from './utilities/budget';
+import { englishStrings, indonesianStrings } from './utilities/budget';
+import { budgetTrackerStyles } from './styles/BudgetTracker';
+import {
+  CategoryBudget,
+  Budget,
+  Expense,
+  CategorySummary,
+  Goal,
+} from './types/budget';
 
-interface Budget {
-  id?: string;
-  month: string;              // YYYY-MM
-  totalBudget: number;
-  categories: CategoryBudget[];
-  createdAt: string;          // ISO
-  updatedAt: string;          // ISO
-}
-
-interface Expense {
-  id: string;
-  amount: number;
-  category: string;           // category name
-  description: string;
-  date: string;               // YYYY-MM-DD
-  createdAt: string;          // ISO
-}
-
-interface CategorySummary {
-  categoryName: string;
-  budgeted: number;
-  spent: number;
-  remaining: number;
-  percentRaw: number;
-  percentBar: number;
-}
-
-/** New: Structured goal so we can support multiple goals */
-interface Goal {
-  id: string;
-  wish: string;
-  goalType: string;
-  goalTypeOther: string;
-  targetAmount: number;
-  targetAmountUnknown: boolean;
-  startDate: string;
-  targetDate: string;
-  flexibility: 'hard' | 'soft';
-  currentSavings: number;
-  priority: 'high' | 'medium' | 'low';
-  riskProfile: 'conservative' | 'balanced' | 'aggressive';
-  nonNegotiables: string[];
-  motivation: string;
-}
-
-/** =======================
- *          i18n
- *  ======================= */
-interface LanguageStrings {
-  appTitle: string;
-
-  // goal context
-  goalSectionTitle: string;
-  wishLabel: string;
-  wishPlaceholder: string;
-
-  goalTypeLabel: string;
-  goalTypeOtherLabel: string;
-  goalTypeOptions: {
-    emergency: string;
-    debt: string;
-    device: string;
-    travel: string;
-    tuition: string;
-    move: string;
-    build: string;
-    other: string;
-  };
-
-  targetAmountLabel: string;
-  targetAmountPlaceholder: string;
-  targetAmountUnknown: string;
-
-  startDateLabel: string;
-  targetDateLabel: string; // “When do you want to achieve this?”
-  targetDateHint?: string;
-
-  flexibilityLabel: string;
-  flexibilityHard: string;
-  flexibilitySoft: string;
-
-  currentSavingsLabel: string;
-  priorityLabel: string;
-  priorityOptions: { high: string; medium: string; low: string; };
-  riskLabel: string;
-  riskOptions: { conservative: string; balanced: string; aggressive: string; };
-  nonNegotiablesLabel: string;
-  nonNegotiablesPlaceholder: string;
-  add: string;
-  motivationLabel: string;
-  motivationPlaceholder: string;
-
-  monthlyBudgetSetup: string;
-  totalMonthlyBudget: string;
-  addBudgetCategory: string;
-  categoryName: string;
-  categoryNamePlaceholder: string;
-  budgetAmount: string;
-  budgetAmountPlaceholder: string;
-  addCategory: string;
-  budgetCategories: string;
-  saveBudget: string;
-  budgetSaved: string;
-
-  addExpense: string;
-  expenseAmount: string;
-  expenseAmountPlaceholder: string;
-  selectCategory: string;
-  expenseDescription: string;
-  expenseDescriptionPlaceholder: string;
-  addExpenseButton: string;
-  saveExpensesButton: string;
-  expenseAdded: string;
-
-  budgetDashboard: string;
-  budget: string; spent: string; remaining: string; percentage: string;
-  recentExpenses: string;
-
-  date: string;
-  description: string;
-
-  extraNotesTitle: string;
-  extraNotesPlaceholder: string;
-
-  generatePlan: string;
-  needMoreExpenses: string;
-
-  loading: string; save: string; cancel: string; delete: string;
-
-  dupCategoryWarning: string;
-  requiredField: string;
-}
-
-const englishStrings: LanguageStrings = {
-  appTitle: "Finwise - Budget Tracker",
-
-  goalSectionTitle: "Your Goal",
-  wishLabel: "What do you wish for?",
-  wishPlaceholder: "e.g., Buy a laptop for school, build 3-month emergency fund, pay off paylater",
-
-  goalTypeLabel: "Goal type",
-  goalTypeOtherLabel: "Specify type",
-  goalTypeOptions: {
-    emergency: "Emergency fund",
-    debt: "Pay off debt",
-    device: "Buy a laptop/phone",
-    travel: "Trip/holiday",
-    tuition: "Tuition",
-    move: "Move/relocation",
-    build: "Build savings",
-    other: "Other",
-  },
-
-  targetAmountLabel: "Target amount (IDR)",
-  targetAmountPlaceholder: "Enter amount",
-  targetAmountUnknown: "Not sure",
-
-  startDateLabel: "Start date",
-  targetDateLabel: "When do you want to achieve this?",
-  targetDateHint: "",
-
-  flexibilityLabel: "Flexibility",
-  flexibilityHard: "Must be by this date",
-  flexibilitySoft: "Okay if it slips a bit",
-
-  currentSavingsLabel: "Current savings for this goal (IDR)",
-  priorityLabel: "Priority",
-  priorityOptions: { high: "High", medium: "Medium", low: "Low" },
-  riskLabel: "Risk profile",
-  riskOptions: { conservative: "Conservative", balanced: "Balanced", aggressive: "Aggressive" },
-  nonNegotiablesLabel: "Non-negotiables",
-  nonNegotiablesPlaceholder: "Add an item (press Enter)…",
-  add: "Add",
-  motivationLabel: "Motivation (1 sentence)",
-  motivationPlaceholder: "Why is this goal important to you?",
-
-  monthlyBudgetSetup: "Monthly Budget Setup",
-  totalMonthlyBudget: "Total Monthly Budget:",
-  addBudgetCategory: "Add Budget Category",
-  categoryName: "Category Name",
-  categoryNamePlaceholder: "e.g., Food, Transport, Entertainment",
-  budgetAmount: "Budget Amount",
-  budgetAmountPlaceholder: "Enter amount",
-  addCategory: "Add Category",
-  budgetCategories: "Budget Categories:",
-  saveBudget: "Save Budget",
-  budgetSaved: "Saved successfully!",
-
-  addExpense: "Add Expense",
-  expenseAmount: "Expense Amount",
-  expenseAmountPlaceholder: "Enter expense amount",
-  selectCategory: "Select category",
-  expenseDescription: "Expense Description",
-  expenseDescriptionPlaceholder: "What did you spend on?",
-  addExpenseButton: "Add Expense",
-  saveExpensesButton: "Save Expenses",
-  expenseAdded: "Expense added successfully!",
-
-  budgetDashboard: "Budget Dashboard",
-  budget: "Budget", spent: "Spent", remaining: "Remaining", percentage: "Percentage",
-  recentExpenses: "Recent Expenses",
-
-  date: "Date",
-  description: "Description",
-
-  extraNotesTitle: "Is there anything else you want to let us know?",
-  extraNotesPlaceholder: "Add any extra context (optional)…",
-
-  generatePlan: "Generate Plan",
-  needMoreExpenses: "Add at least 5 expenses to enable.",
-
-  loading: "Loading...", save: "Save", cancel: "Cancel", delete: "Delete",
-
-  dupCategoryWarning: "Category already exists (case-insensitive).",
-  requiredField: "This field is required."
-};
-
-const indonesianStrings: LanguageStrings = {
-  appTitle: "Finwise - Budget Tracker",
-
-  goalSectionTitle: "Tujuan Anda",
-  wishLabel: "Apa yang Anda inginkan?",
-  wishPlaceholder: "contoh: Beli laptop untuk kuliah, dana darurat 3 bulan, lunasi paylater",
-
-  goalTypeLabel: "Jenis tujuan",
-  goalTypeOtherLabel: "Sebutkan jenis",
-  goalTypeOptions: {
-    emergency: "Dana darurat",
-    debt: "Lunasi utang",
-    device: "Beli laptop/HP",
-    travel: "Liburan/perjalanan",
-    tuition: "Biaya kuliah",
-    move: "Pindah tempat tinggal",
-    build: "Bangun tabungan",
-    other: "Lainnya",
-  },
-
-  targetAmountLabel: "Nominal target (Rp)",
-  targetAmountPlaceholder: "Masukkan jumlah",
-  targetAmountUnknown: "Belum tahu",
-
-  startDateLabel: "Tanggal mulai",
-  targetDateLabel: "Kapan target tercapai?",
-  targetDateHint: "",
-
-  flexibilityLabel: "Fleksibilitas",
-  flexibilityHard: "Harus tercapai di tanggal ini",
-  flexibilitySoft: "Boleh mundur sedikit",
-
-  currentSavingsLabel: "Tabungan saat ini untuk tujuan ini (Rp)",
-  priorityLabel: "Prioritas",
-  priorityOptions: { high: "Tinggi", medium: "Sedang", low: "Rendah" },
-  riskLabel: "Profil risiko",
-  riskOptions: { conservative: "Konservatif", balanced: "Seimbang", aggressive: "Agresif" },
-  nonNegotiablesLabel: "Yang tidak bisa dikurangi",
-  nonNegotiablesPlaceholder: "Tambah item (tekan Enter)…",
-  add: "Tambah",
-  motivationLabel: "Motivasi (1 kalimat)",
-  motivationPlaceholder: "Kenapa tujuan ini penting?",
-
-  monthlyBudgetSetup: "Setup Budget Bulanan",
-  totalMonthlyBudget: "Total Budget Bulanan:",
-  addBudgetCategory: "Tambah Kategori Budget",
-  categoryName: "Nama Kategori",
-  categoryNamePlaceholder: "contoh: Makanan, Transportasi, Hiburan",
-  budgetAmount: "Jumlah Budget",
-  budgetAmountPlaceholder: "Masukkan jumlah",
-  addCategory: "Tambah Kategori",
-  budgetCategories: "Kategori Budget:",
-  saveBudget: "Simpan Budget",
-  budgetSaved: "Berhasil disimpan!",
-
-  addExpense: "Tambah Pengeluaran",
-  expenseAmount: "Jumlah Pengeluaran",
-  expenseAmountPlaceholder: "Masukkan jumlah pengeluaran",
-  selectCategory: "Pilih kategori",
-  expenseDescription: "Deskripsi Pengeluaran",
-  expenseDescriptionPlaceholder: "Untuk apa pengeluaran ini?",
-  addExpenseButton: "Tambah Pengeluaran",
-  saveExpensesButton: "Simpan Pengeluaran",
-  expenseAdded: "Pengeluaran berhasil ditambahkan!",
-
-  budgetDashboard: "Dashboard Budget",
-  budget: "Budget", spent: "Terpakai", remaining: "Sisa", percentage: "Persentase",
-  recentExpenses: "Pengeluaran Terbaru",
-
-  date: "Tanggal",
-  description: "Deskripsi",
-
-  extraNotesTitle: "Ada hal lain yang ingin Anda sampaikan?",
-  extraNotesPlaceholder: "Tambahkan konteks tambahan (opsional)…",
-
-  generatePlan: "Buat Rencana",
-  needMoreExpenses: "Tambahkan minimal 5 pengeluaran untuk mengaktifkan.",
-
-  loading: "Memuat...", save: "Simpan", cancel: "Batal", delete: "Hapus",
-
-  dupCategoryWarning: "Kategori sudah ada (abaikan besar/kecil huruf).",
-  requiredField: "Wajib diisi."
-};
-
-/** =======================
- *        Component
- *  ======================= */
 function App() {
-  // small inline style block for layout polish
-  const styles = `
-    .container { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
-    header, section { margin: 0 auto; }
-    .row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-    .row > * { margin: 0; }
-    .stack { display:flex; flex-direction:column; gap:12px; }
-    .hint { color:#6b7280; font-size:.9rem; }
-    .categories-list, .expenses-list { display:flex; flex-direction:column; gap:12px; }
-    .dashboard-grid {
-      display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap:16px;
-    }
-    .category-card {
-      border:1px solid #e5e7eb; border-radius:12px; padding:12px; background:#fff;
-      box-shadow:0 1px 2px rgba(0,0,0,.04);
-    }
-    .category-card h4 { margin:0 0 8px 0; }
-    .progress-bar { height:8px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
-    .progress-fill { height:100%; }
-    .category-stats { display:flex; justify-content:space-between; margin-top:8px; gap:10px; font-size:.95rem; }
-    .category-item, .expense-item {
-      border:1px solid #f1f5f9; border-radius:10px; background:#fff;
-      padding:10px; display:flex; align-items:center; justify-content:space-between; gap:10px;
-    }
-    .category-view, .expense-edit, .category-edit { width:100%; }
-    .category-edit, .expense-edit { display:flex; flex-direction:column; gap:8px; }
-    .row-actions { display:flex; gap:8px; }
-    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
-    .save-row { display:flex; justify-content:flex-end; }
-    .goal-card { border:1px solid #e5e7eb; border-radius:12px; background:#fff; padding:12px; display:flex; flex-direction:column; gap:12px; }
-    .chips { display:flex; flex-wrap:wrap; gap:8px; }
-    .chip { display:inline-flex; align-items:center; gap:6px; background:#f1f5f9; color:#0f172a; border:1px solid #e2e8f0; border-radius:999px; padding:6px 10px; font-size:.9rem; }
-    .chip button { border:none; background:transparent; cursor:pointer; }
-  `;
+  // inject component-scoped styles
+  const styles = budgetTrackerStyles;
 
   /** Language */
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'id'>(() => {
     const saved = localStorage.getItem('lang');
     return (saved === 'id' || saved === 'en') ? saved : 'en';
   });
-  const strings = currentLanguage === 'en' ? englishStrings : indonesianStrings;
+  const strings: LanguageStrings =
+    currentLanguage === 'en' ? englishStrings : indonesianStrings;
   useEffect(() => { localStorage.setItem('lang', currentLanguage); }, [currentLanguage]);
 
   /** Budget + expenses state */
@@ -461,6 +125,11 @@ function App() {
     setGoals(gs => gs.map(g =>
       g.id === goalId ? { ...g, nonNegotiables: g.nonNegotiables.filter(x => x !== v) } : g
     ));
+  };
+
+  // NEW: delete a goal
+  const deleteGoal = (id: string) => {
+    setGoals(gs => gs.filter(g => g.id !== id));
   };
 
   /** Helpers */
@@ -596,6 +265,16 @@ function App() {
     cancelEditCategory();
   };
 
+  // NEW: delete a category
+  const deleteCategory = (id: string) => {
+    if (!currentBudget) return;
+    if (editingCategoryId === id) cancelEditCategory();
+    setCurrentBudget({
+      ...currentBudget,
+      categories: currentBudget.categories.filter(c => c.id !== id),
+    });
+  };
+
   const saveBudget = () => {
     if (!currentBudget) return;
     const nowIso = new Date().toISOString();
@@ -641,6 +320,12 @@ function App() {
     cancelEditExpense();
   };
 
+  // NEW: delete an expense
+  const deleteExpense = (id: string) => {
+    if (editingExpenseId === id) cancelEditExpense();
+    setExpenses(prev => prev.filter(e => e.id !== id));
+  };
+
   const saveAllExpenses = () => {
     const byMonth = expenses.reduce<Record<string, Expense[]>>((acc, e) => {
       const m = toMonth(e.date);
@@ -659,6 +344,12 @@ function App() {
   const canGeneratePlan = expenses.length >= 5;
 
   const switchLanguage = (lang: 'en' | 'id') => setCurrentLanguage(lang);
+
+  /** Extra notes (FIX: make it a controlled input synced to localStorage) */
+  const [extraNotes, setExtraNotes] = useState<string>(() => localStorage.getItem('extra_notes') ?? '');
+  useEffect(() => {
+    localStorage.setItem('extra_notes', extraNotes);
+  }, [extraNotes]);
 
   /** =======================
    *         Render
@@ -689,6 +380,13 @@ function App() {
 
           {goals.map((goal) => (
             <div key={goal.id} className="stack" style={{ borderTop: '1px solid #eee', paddingTop: 12 }}>
+              {/* Per-goal actions */}
+              <div className="row" style={{ justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => deleteGoal(goal.id)} aria-label="Delete goal">
+                  {strings.delete}
+                </button>
+              </div>
+
               {/* Title + Goal type */}
               <div className="row">
                 <label htmlFor={`wish-${goal.id}`} className="sr-only">{strings.wishLabel}</label>
@@ -991,7 +689,11 @@ function App() {
                       <div className="category-view">
                         <div className="row" style={{ justifyContent: 'space-between' }}>
                           <div><strong>{cat.name}</strong>: {formatCurrency(cat.amount)}</div>
-                          <button aria-label="Edit category" onClick={() => startEditCategory(cat)}>✏️</button>
+                          <div className="row-actions">
+                            <button aria-label="Edit category" onClick={() => startEditCategory(cat)}>✏️</button>
+                            {/* NEW: delete category */}
+                            <button aria-label="Delete category" onClick={() => deleteCategory(cat.id)}>{strings.delete}</button>
+                          </div>
                         </div>
                         <div className="hint">{strings.date}: {cat.date}</div>
                         <div style={{ whiteSpace: 'pre-wrap' }}>{cat.description}</div>
@@ -1073,7 +775,9 @@ function App() {
               {categorySummaries.map(summary => (
                 <div key={summary.categoryName} className="category-card">
                   <h4>{summary.categoryName}</h4>
-                  <div className="progress-bar" aria-label={`${summary.categoryName} progress`}>
+
+                  {/* Visual progress bar */}
+                  <div className="progress-bar" aria-hidden="true">
                     <div
                       className="progress-fill"
                       style={{
@@ -1082,6 +786,15 @@ function App() {
                       }}
                     />
                   </div>
+
+                  {/* Accessible progress for AT */}
+                  <progress
+                    className="sr-only"
+                    value={Math.round(summary.percentBar)}
+                    max={100}
+                    aria-label={`${summary.categoryName} progress`}
+                  />
+
                   <div className="category-stats">
                     <span>{strings.budget}: {formatCurrency(summary.budgeted)}</span>
                     <span>{strings.spent}: {formatCurrency(summary.spent)}</span>
@@ -1138,6 +851,8 @@ function App() {
                       <div className="row-actions">
                         <button onClick={saveEditedExpense}>{strings.save}</button>
                         <button onClick={cancelEditExpense}>{strings.cancel}</button>
+                        {/* Optional delete while editing */}
+                        <button onClick={() => deleteExpense(expense.id)}>{strings.delete}</button>
                       </div>
                     </div>
                   ) : (
@@ -1150,7 +865,11 @@ function App() {
                         <div className="hint">{strings.date}: {expense.date}</div>
                       </div>
                       <div className="expense-amount">{formatCurrency(expense.amount)}</div>
-                      <button aria-label="Edit expense" onClick={() => startEditExpense(expense)}>✏️</button>
+                      <div className="row-actions">
+                        <button aria-label="Edit expense" onClick={() => startEditExpense(expense)}>✏️</button>
+                        {/* NEW: delete expense */}
+                        <button aria-label="Delete expense" onClick={() => deleteExpense(expense.id)}>{strings.delete}</button>
+                      </div>
                     </>
                   )}
                 </div>
@@ -1163,16 +882,13 @@ function App() {
           </section>
         )}
 
-        {/* Extra notes */}
+        {/* Extra notes (FIXED) */}
         <section className="stack" style={{ marginTop: 16 }}>
           <h3>{strings.extraNotesTitle}</h3>
           <textarea
             placeholder={strings.extraNotesPlaceholder}
-            value={localStorage.getItem('extra_notes') ?? ''}
-            onChange={(e) => {
-              localStorage.setItem('extra_notes', e.target.value);
-              // force re-render by setting a dummy state? not necessary; textarea shows controlled by value above.
-            }}
+            value={extraNotes}
+            onChange={(e) => setExtraNotes(e.target.value)}
             rows={3}
           />
         </section>
@@ -1180,11 +896,15 @@ function App() {
         {/* Generate Plan */}
         <section className="stack" style={{ marginTop: 8, marginBottom: 48, alignItems: 'flex-end' }}>
           {(!canGeneratePlan) && (
-            <div className="hint" style={{ width: '100%', textAlign: 'right' }}>
+            <div id="genplan-requirements" className="hint" style={{ width: '100%', textAlign: 'right' }}>
               {strings.needMoreExpenses} ({expenses.length}/5)
             </div>
           )}
-          <button onClick={() => {}} disabled={!canGeneratePlan} aria-describedby={!canGeneratePlan ? 'genplan-requirements' : undefined}>
+          <button
+            onClick={() => {}}
+            disabled={!canGeneratePlan}
+            aria-describedby={!canGeneratePlan ? 'genplan-requirements' : undefined}
+          >
             {strings.generatePlan}
           </button>
         </section>
