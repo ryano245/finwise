@@ -44,9 +44,10 @@ const Chat: React.FC = () => {
     if (e.key === "Enter") sendMessage();
   };
 
-  // Navigate to Post page with conversation
+  // Navigate to Post page and clear chat
   const goToPostPage = () => {
     navigate("/post", { state: { messages } });
+    setMessages([]); // clear chat after redirect
   };
 
   return (

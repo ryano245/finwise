@@ -16,7 +16,10 @@ const Post: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const handlePost = async () => {
-    if (!messages || messages.length === 0) return;
+    if (!messages || messages.length === 0) {
+      alert("No conversation to post.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -31,7 +34,7 @@ const Post: React.FC = () => {
       const data = await response.json();
       alert(data.message || "Conversation posted successfully!");
 
-      // After posting, go back to chat
+      // After posting, go to forum page
       navigate("/forum");
     } catch (err) {
       console.error("Error posting confession:", err);
@@ -45,6 +48,7 @@ const Post: React.FC = () => {
     <div style={{ maxWidth: "600px", margin: "2rem auto", fontFamily: "Arial, sans-serif" }}>
       <h2 style={{ textAlign: "center" }}>Post Your Conversation</h2>
 
+      {/* Conversation Preview */}
       <div
         style={{
           border: "1px solid #ccc",
@@ -81,10 +85,11 @@ const Post: React.FC = () => {
         ))}
       </div>
 
+      {/* Caption Input */}
       <textarea
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
-        placeholder="Add a caption..."
+        placeholder="Add a caption (optional)..."
         style={{
           width: "100%",
           height: "80px",
@@ -96,6 +101,7 @@ const Post: React.FC = () => {
         }}
       />
 
+      {/* Confirm Post Button */}
       <button
         onClick={handlePost}
         disabled={loading}
