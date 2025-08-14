@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link} from 'react-router-dom';
 import BudgetTracker from './BudgetTracker';
 import Chatbot from './Chatbot';
+import Post from './Post';
+import Forum from './Forum';
 import './App.css';
 
 const App: React.FC = () => {
@@ -23,6 +25,8 @@ const App: React.FC = () => {
         } />
         <Route path="/budget" element={<BudgetTracker />} />
         <Route path="/chatbot" element={<Chatbot />} />
+        <Route path="/post" element={<Post />} />
+        <Route path="/forum" element={<Forum />} />
       </Routes>
     </Router>
   );

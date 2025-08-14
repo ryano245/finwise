@@ -75,3 +75,43 @@ app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📱 Visit: http://localhost:${PORT}`);
 });
+
+//forum page
+// In-memory store (replace with DB later)
+let confessions = [];
+
+// Post a confession anonymously (full conversation)
+app.post('/api/confess', (req, res) => {
+  const { conversation } = req.body;
+
+  if (!conversation || !Array.isArray(conversation) || conversation.length === 0) {
+    return res.status(400).json({ error: 'Conversation is required' });
+  }
+
+  const newConfession = {
+    conversation, // array of { sender, text }
+    timestamp: new Date().toISOString()
+  };
+
+  confessions.push(newConfession);
+
+  res.json({ success: true, message: 'Conversation posted anonymously', confession: newConfession });
+});
+
+// Get all confessions
+app.get('/api/confess', (req, res) => {
+  res.json(confessions);
+});
+
+// Get all confessions (forum)
+app.get('/api/forum', (req, res) => {
+  // Return posts anonymously (no sender info)
+  const anonPosts = confessions.map((post) => ({
+    id: post.id,
+    caption: post.caption,
+    conversation: post.conversation.map((msg) => ({ text: msg.text })),
+    timestamp: post.timestamp,
+  }));
+
+  res.json(anonPosts);
+});
