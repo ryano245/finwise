@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import ReactMarkdown from 'react-markdown';
+import { useNavigate } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 
-const Chatbot: React.FC = () => {
+const Chat: React.FC = () => {
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,10 +29,11 @@ const Chatbot: React.FC = () => {
     sendIntroMessage();
   }, []);
 
+  const navigate = useNavigate();
+
   const sendMessage = async () => {
     if (!input.trim()) return;
 
-    // Add user message to chat
     const userMessage = { sender: "user", text: input };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
@@ -48,11 +50,13 @@ const Chatbot: React.FC = () => {
 
       const data = await response.json();
 
-      // Add chatbot reply to chat
       setMessages((prev) => [...prev, { sender: "bot", text: data.reply }]);
     } catch (err) {
       console.error("Error sending message:", err);
-      setMessages((prev) => [...prev, { sender: "bot", text: "Error: failed to get response." }]);
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: "Error: failed to get response." },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -62,9 +66,17 @@ const Chatbot: React.FC = () => {
     if (e.key === "Enter") sendMessage();
   };
 
+  // Navigate to Post page and clear chat
+  const goToPostPage = () => {
+    navigate("/post", { state: { messages } });
+    setMessages([]); // clear chat after redirect
+  };
+
   return (
     <div style={{ maxWidth: "500px", margin: "2rem auto", fontFamily: "Arial, sans-serif" }}>
       <h2 style={{ textAlign: "center" }}>Financial Assistant Chatbot</h2>
+      
+      {/* Chat Window */}
       <div
         style={{
           border: "1px solid #ccc",
@@ -95,11 +107,11 @@ const Chatbot: React.FC = () => {
                 wordBreak: "break-word",
               }}
             >
-                {msg.sender === "bot" ? (
-                    <ReactMarkdown>{msg.text}</ReactMarkdown>
-                ) : (
-                    msg.text
-                )}
+              {msg.sender === "bot" ? (
+                <ReactMarkdown>{msg.text}</ReactMarkdown>
+              ) : (
+                msg.text
+              )}
             </div>
           </div>
         ))}
@@ -107,6 +119,7 @@ const Chatbot: React.FC = () => {
         <div ref={chatEndRef}></div>
       </div>
 
+      {/* Input Row */}
       <div style={{ display: "flex", marginTop: "1rem" }}>
         <input
           type="text"
@@ -137,8 +150,27 @@ const Chatbot: React.FC = () => {
           Send
         </button>
       </div>
+
+      {/* Go to Post Page */}
+      {messages.length > 0 && (
+        <button
+          onClick={goToPostPage}
+          style={{
+            marginTop: "1rem",
+            width: "100%",
+            padding: "0.5rem 1rem",
+            borderRadius: "20px",
+            border: "none",
+            backgroundColor: "#16a34a",
+            color: "white",
+            cursor: "pointer",
+          }}
+        >
+          Post Conversation Anonymously
+        </button>
+      )}
     </div>
   );
 };
 
-export default Chatbot;
+export default Chat;
