@@ -1,23 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
 
-// Types
+// ===== Types =====
+interface CategoryBudget {
+  id: string;
+  name: string;
+  amount: number;
+  date: string;        // YYYY-MM-DD
+  description: string; // unlimited length
+}
+
 interface Budget {
   id?: string;
-  month: string;
+  month: string;              // YYYY-MM
   totalBudget: number;
-  categories: {[key: string]: number};
-  createdAt: string;
-  updatedAt: string;
+  categories: CategoryBudget[];
+  createdAt: string;          // ISO
+  updatedAt: string;          // ISO
 }
 
 interface Expense {
-  id?: string;
+  id: string;
   amount: number;
-  category: string;
+  category: string;           // category name
   description: string;
-  date: string;
-  createdAt: string;
+  date: string;               // YYYY-MM-DD
+  createdAt: string;          // ISO
 }
 
 interface CategorySummary {
@@ -25,15 +33,21 @@ interface CategorySummary {
   budgeted: number;
   spent: number;
   remaining: number;
-  percentage: number;
+  percentRaw: number; // unclamped (for color)
+  percentBar: number; // clamped 0..100 for bar width
 }
 
-// Internationalization - Language strings
+// ===== i18n =====
 interface LanguageStrings {
-  // App title and navigation
   appTitle: string;
-  
-  // Budget setup
+
+  // goal context
+  goalSectionTitle: string;
+  wishLabel: string;
+  wishPlaceholder: string;
+  realizedDateLabel: string;
+  targetDateLabel: string;
+
   monthlyBudgetSetup: string;
   totalMonthlyBudget: string;
   addBudgetCategory: string;
@@ -45,8 +59,7 @@ interface LanguageStrings {
   budgetCategories: string;
   saveBudget: string;
   budgetSaved: string;
-  
-  // Expense tracking
+
   addExpense: string;
   expenseAmount: string;
   expenseAmountPlaceholder: string;
@@ -54,30 +67,39 @@ interface LanguageStrings {
   expenseDescription: string;
   expenseDescriptionPlaceholder: string;
   addExpenseButton: string;
+  saveExpensesButton: string;
   expenseAdded: string;
-  
-  // Dashboard
+
   budgetDashboard: string;
-  budget: string;
-  spent: string;
-  remaining: string;
-  percentage: string;
+  budget: string; spent: string; remaining: string; percentage: string;
   recentExpenses: string;
-  
-  // General
-  loading: string;
-  add: string;
-  save: string;
-  cancel: string;
-  delete: string;
+
+  date: string;
+  description: string;
+
+  // bottom notes
+  extraNotesTitle: string;
+  extraNotesPlaceholder: string;
+
+  // generate plan
+  generatePlan: string;
+  needMoreExpenses: string;
+
+  loading: string; add: string; save: string; cancel: string; delete: string;
+
+  dupCategoryWarning: string;
+  requiredField: string;
 }
 
-// English language strings
 const englishStrings: LanguageStrings = {
-  // App title and navigation
   appTitle: "Finwise - Budget Tracker",
-  
-  // Budget setup
+
+  goalSectionTitle: "Your Goal",
+  wishLabel: "What do you wish for?",
+  wishPlaceholder: "e.g., Build 3-month emergency fund, pay off paylater, etc.",
+  realizedDateLabel: "When did you realize this goal?",
+  targetDateLabel: "By when do you want it?",
+
   monthlyBudgetSetup: "Monthly Budget Setup",
   totalMonthlyBudget: "Total Monthly Budget:",
   addBudgetCategory: "Add Budget Category",
@@ -88,9 +110,8 @@ const englishStrings: LanguageStrings = {
   addCategory: "Add Category",
   budgetCategories: "Budget Categories:",
   saveBudget: "Save Budget",
-  budgetSaved: "Budget saved successfully!",
-  
-  // Expense tracking
+  budgetSaved: "Saved successfully!",
+
   addExpense: "Add Expense",
   expenseAmount: "Expense Amount",
   expenseAmountPlaceholder: "Enter expense amount",
@@ -98,30 +119,37 @@ const englishStrings: LanguageStrings = {
   expenseDescription: "Expense Description",
   expenseDescriptionPlaceholder: "What did you spend on?",
   addExpenseButton: "Add Expense",
+  saveExpensesButton: "Save Expenses",
   expenseAdded: "Expense added successfully!",
-  
-  // Dashboard
+
   budgetDashboard: "Budget Dashboard",
-  budget: "Budget",
-  spent: "Spent",
-  remaining: "Remaining",
-  percentage: "Percentage",
+  budget: "Budget", spent: "Spent", remaining: "Remaining", percentage: "Percentage",
   recentExpenses: "Recent Expenses",
-  
-  // General
-  loading: "Loading...",
-  add: "Add",
-  save: "Save",
-  cancel: "Cancel",
-  delete: "Delete"
+
+  date: "Date",
+  description: "Description",
+
+  extraNotesTitle: "Is there anything else you want to let us know?",
+  extraNotesPlaceholder: "Add any extra context (optional)…",
+
+  generatePlan: "Generate Plan",
+  needMoreExpenses: "Add at least 5 expenses to enable.",
+
+  loading: "Loading...", add: "Add", save: "Save", cancel: "Cancel", delete: "Delete",
+
+  dupCategoryWarning: "Category already exists (case-insensitive).",
+  requiredField: "This field is required."
 };
 
-// Indonesian language strings
 const indonesianStrings: LanguageStrings = {
-  // App title and navigation
   appTitle: "Finwise - Budget Tracker",
-  
-  // Budget setup
+
+  goalSectionTitle: "Tujuan Anda",
+  wishLabel: "Apa yang Anda inginkan?",
+  wishPlaceholder: "contoh: Bangun dana darurat 3 bulan, lunasi paylater, dsb.",
+  realizedDateLabel: "Kapan Anda menyadari tujuan ini?",
+  targetDateLabel: "Target kapan tercapai?",
+
   monthlyBudgetSetup: "Setup Budget Bulanan",
   totalMonthlyBudget: "Total Budget Bulanan:",
   addBudgetCategory: "Tambah Kategori Budget",
@@ -132,9 +160,8 @@ const indonesianStrings: LanguageStrings = {
   addCategory: "Tambah Kategori",
   budgetCategories: "Kategori Budget:",
   saveBudget: "Simpan Budget",
-  budgetSaved: "Budget berhasil disimpan!",
-  
-  // Expense tracking
+  budgetSaved: "Berhasil disimpan!",
+
   addExpense: "Tambah Pengeluaran",
   expenseAmount: "Jumlah Pengeluaran",
   expenseAmountPlaceholder: "Masukkan jumlah pengeluaran",
@@ -142,345 +169,694 @@ const indonesianStrings: LanguageStrings = {
   expenseDescription: "Deskripsi Pengeluaran",
   expenseDescriptionPlaceholder: "Untuk apa pengeluaran ini?",
   addExpenseButton: "Tambah Pengeluaran",
+  saveExpensesButton: "Simpan Pengeluaran",
   expenseAdded: "Pengeluaran berhasil ditambahkan!",
-  
-  // Dashboard
+
   budgetDashboard: "Dashboard Budget",
-  budget: "Budget",
-  spent: "Terpakai",
-  remaining: "Sisa",
-  percentage: "Persentase",
+  budget: "Budget", spent: "Terpakai", remaining: "Sisa", percentage: "Persentase",
   recentExpenses: "Pengeluaran Terbaru",
-  
-  // General
-  loading: "Memuat...",
-  add: "Tambah",
-  save: "Simpan",
-  cancel: "Batal",
-  delete: "Hapus"
+
+  date: "Tanggal",
+  description: "Deskripsi",
+
+  extraNotesTitle: "Ada hal lain yang ingin Anda sampaikan?",
+  extraNotesPlaceholder: "Tambahkan konteks tambahan (opsional)…",
+
+  generatePlan: "Buat Rencana",
+  needMoreExpenses: "Tambahkan minimal 5 pengeluaran untuk mengaktifkan.",
+
+  loading: "Memuat...", add: "Tambah", save: "Simpan", cancel: "Batal", delete: "Hapus",
+
+  dupCategoryWarning: "Kategori sudah ada (abaikan besar/kecil huruf).",
+  requiredField: "Wajib diisi."
 };
 
-const BudgetTracker: React.FC = () => {
+// ===== Component =====
+function App() {
+  // Small stylesheet for layout cleanup
+  const styles = `
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+    header, section { margin: 0 auto; }
+    .row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    .row > * { margin: 0; }
+    .stack { display:flex; flex-direction:column; gap:12px; }
+    .hint { color:#6b7280; font-size:.9rem; }
+
+    .categories-list, .expenses-list { display:flex; flex-direction:column; gap:12px; }
+
+    .dashboard-grid {
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap:16px;
+    }
+    .category-card {
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      padding:12px;
+      background:#fff;
+      box-shadow:0 1px 2px rgba(0,0,0,.04);
+    }
+    .category-card h4 { margin:0 0 8px 0; }
+    .progress-bar { height:8px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
+    .progress-fill { height:100%; }
+    .category-stats { display:flex; justify-content:space-between; margin-top:8px; gap:10px; font-size:.95rem; }
+
+    .category-item, .expense-item {
+      border:1px solid #f1f5f9; border-radius:10px; background:#fff;
+      padding:10px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .category-view, .expense-edit, .category-edit { width:100%; }
+
+    .category-edit, .expense-edit { display:flex; flex-direction:column; gap:8px; }
+    .row-actions { display:flex; gap:8px; }
+
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+    .save-row { display:flex; justify-content:flex-end; }
+
+    .goal-card {
+      border:1px solid #e5e7eb; border-radius:12px; background:#fff; padding:12px;
+      display:flex; flex-direction:column; gap:10px;
+    }
+  `;
+
+  // Language
+  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'id'>(() => {
+    const saved = localStorage.getItem('lang');
+    return (saved === 'id' || saved === 'en') ? saved : 'en';
+  });
+  const strings = currentLanguage === 'en' ? englishStrings : indonesianStrings;
+  useEffect(() => { localStorage.setItem('lang', currentLanguage); }, [currentLanguage]);
+
+  // Budget + expenses state
   const [currentBudget, setCurrentBudget] = useState<Budget | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [categorySummaries, setCategorySummaries] = useState<CategorySummary[]>([]);
-  
-  // Language support
-  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'id'>('en');
-  const strings = currentLanguage === 'en' ? englishStrings : indonesianStrings;
-  
-  // Budget states
-  const [totalBudget, setTotalBudget] = useState<number>(0);
-  const [categories, setCategories] = useState<{[key: string]: number}>({});
+
+  // Add-category form
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryAmount, setNewCategoryAmount] = useState<number>(0);
-  
-  // Expense states
+  const [newCategoryDate, setNewCategoryDate] = useState<string>(''); // required
+  const [newCategoryDescription, setNewCategoryDescription] = useState<string>('');
+
+  // Edit-category inline
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [categoryDraft, setCategoryDraft] = useState<Partial<CategoryBudget>>({});
+
+  // Add-expense form
   const [expenseAmount, setExpenseAmount] = useState<number>(0);
   const [expenseCategory, setExpenseCategory] = useState('');
-  const [expenseDescription, setExpenseDescription] = useState('');
+  const [expenseDate, setExpenseDate] = useState<string>(''); // required
+  const [expenseDescription, setExpenseDescription] = useState<string>('');
 
-  // Load data from localStorage on component mount
-  useEffect(() => {
-    loadUserData();
-  }, []);
+  // Edit-expense inline
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [expenseDraft, setExpenseDraft] = useState<Partial<Expense>>({});
 
-  // Calculate category summaries when budget or expenses change
-  useEffect(() => {
-    if (currentBudget && expenses.length >= 0) {
-      calculateCategorySummaries();
-    }
-  }, [currentBudget, expenses]);
+  // Total budget field
+  const [totalBudget, setTotalBudget] = useState<number>(0);
 
+  // Goal context & notes (persist automatically)
+  const [wish, setWish] = useState<string>(() => localStorage.getItem('wish') ?? '');
+  const [realizedDate, setRealizedDate] = useState<string>(() => localStorage.getItem('wish_realized_date') ?? '');
+  const [targetDate, setTargetDate] = useState<string>(() => localStorage.getItem('wish_target_date') ?? '');
+  const [extraNotes, setExtraNotes] = useState<string>(() => localStorage.getItem('extra_notes') ?? '');
+
+  useEffect(() => { localStorage.setItem('wish', wish); }, [wish]);
+  useEffect(() => { localStorage.setItem('wish_realized_date', realizedDate); }, [realizedDate]);
+  useEffect(() => { localStorage.setItem('wish_target_date', targetDate); }, [targetDate]);
+  useEffect(() => { localStorage.setItem('extra_notes', extraNotes); }, [extraNotes]);
+
+  // Helpers
   const getCurrentMonth = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   };
+  const toMonth = (yyyyMmDd: string) => yyyyMmDd.slice(0, 7);
 
-  const loadUserData = () => {
+  // Currency without thousands separator (so it doesn't look like a decimal)
+  const formatCurrency = (amount: number) =>
+    `Rp ${Math.round(amount).toLocaleString('id-ID', { useGrouping: false, maximumFractionDigits: 0 })}`;
+
+  // Load data on mount
+  useEffect(() => {
     try {
       const currentMonth = getCurrentMonth();
-      
-      // Load current month's budget from localStorage
+
+      // Budget
       const storedBudget = localStorage.getItem(`budget-${currentMonth}`);
       if (storedBudget) {
-        const budgetData = JSON.parse(storedBudget) as Budget;
-        setCurrentBudget(budgetData);
-        setCategories(budgetData.categories);
-        setTotalBudget(budgetData.totalBudget);
+        const raw = JSON.parse(storedBudget) as any;
+        // migrate from old map shape to array if needed
+        let categories: CategoryBudget[] = [];
+        if (Array.isArray(raw.categories)) {
+          categories = raw.categories as CategoryBudget[];
+        } else if (raw.categories && typeof raw.categories === 'object') {
+          categories = Object.entries(raw.categories).map(([name, amount], i) => ({
+            id: `cat-${i}-${name}`,
+            name,
+            amount: Number(amount),
+            date: `${currentMonth}-01`,
+            description: ''
+          }));
+        }
+        const budget: Budget = {
+          id: raw.id ?? `budget-${currentMonth}`,
+          month: raw.month ?? currentMonth,
+          totalBudget: Number(raw.totalBudget ?? 0),
+          categories,
+          createdAt: raw.createdAt ?? new Date().toISOString(),
+          updatedAt: raw.updatedAt ?? new Date().toISOString()
+        };
+        setCurrentBudget(budget);
+        setTotalBudget(budget.totalBudget);
       }
-      
-      // Load current month's expenses from localStorage
+
+      // Expenses
       const storedExpenses = localStorage.getItem(`expenses-${currentMonth}`);
       if (storedExpenses) {
-        const expenseList = JSON.parse(storedExpenses) as Expense[];
-        setExpenses(expenseList);
+        const list = JSON.parse(storedExpenses) as Expense[];
+        setExpenses(list);
       }
-      
-    } catch (error) {
-      console.error('Error loading user data:', error);
+    } catch (e) {
+      console.error('Error loading data:', e);
     }
-  };
+  }, []);
 
-  const calculateCategorySummaries = () => {
-    if (!currentBudget) return;
-    
-    const summaries: CategorySummary[] = Object.entries(currentBudget.categories).map(([categoryName, budgeted]) => {
-      const spent = expenses
-        .filter(expense => expense.category === categoryName)
-        .reduce((sum, expense) => sum + expense.amount, 0);
-      
-      const remaining = budgeted - spent;
-      const percentage = budgeted > 0 ? (spent / budgeted) * 100 : 0;
-      
+  // Derived summaries
+  const categorySummaries: CategorySummary[] = useMemo(() => {
+    if (!currentBudget) return [];
+    return currentBudget.categories.map((cat) => {
+      const spent = expenses.filter(e => e.category === cat.name).reduce((sum, e) => sum + e.amount, 0);
+      const remaining = cat.amount - spent;
+      const percentRaw = cat.amount > 0 ? (spent / cat.amount) * 100 : 0;
       return {
-        categoryName,
-        budgeted,
+        categoryName: cat.name,
+        budgeted: cat.amount,
         spent,
         remaining,
-        percentage: Math.min(percentage, 100)
+        percentRaw,
+        percentBar: Math.max(0, Math.min(percentRaw, 100))
       };
     });
-    
-    setCategorySummaries(summaries);
+  }, [currentBudget, expenses]);
+
+  const sumCategoryCaps = useMemo(
+    () => currentBudget?.categories.reduce((acc, c) => acc + (c.amount || 0), 0) ?? 0,
+    [currentBudget]
+  );
+  const remainingToAllocate = Math.max(0, totalBudget - sumCategoryCaps);
+
+  // Categories
+  const addCategory = () => {
+    if (!currentBudget) return;
+    const name = newCategoryName.trim();
+    if (!name || !newCategoryAmount || !newCategoryDate || !newCategoryDescription.trim()) {
+      alert(strings.requiredField);
+      return;
+    }
+    // Duplicate check (case-insensitive)
+    const exists = currentBudget.categories.some((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (exists) { alert(strings.dupCategoryWarning); return; }
+    // Over-allocation guard
+    if (newCategoryAmount > remainingToAllocate) {
+      alert(`Cannot allocate more than remaining: ${formatCurrency(remainingToAllocate)}`);
+      return;
+    }
+    const newCat: CategoryBudget = {
+      id: `cat-${Date.now()}`,
+      name,
+      amount: newCategoryAmount,
+      date: newCategoryDate,
+      description: newCategoryDescription.trim()
+    };
+    setCurrentBudget({ ...currentBudget, categories: [...currentBudget.categories, newCat] });
+    setNewCategoryName(''); setNewCategoryAmount(0); setNewCategoryDate(''); setNewCategoryDescription('');
   };
 
-  const addCategory = () => {
-    if (newCategoryName && newCategoryAmount > 0) {
-      setCategories(prev => ({
-        ...prev,
-        [newCategoryName]: newCategoryAmount
-      }));
-      setNewCategoryName('');
-      setNewCategoryAmount(0);
+  const startEditCategory = (cat: CategoryBudget) => {
+    setEditingCategoryId(cat.id);
+    setCategoryDraft({ ...cat });
+  };
+  const cancelEditCategory = () => { setEditingCategoryId(null); setCategoryDraft({}); };
+  const saveEditedCategory = () => {
+    if (!currentBudget || !editingCategoryId || !categoryDraft) return;
+    const name = (categoryDraft.name ?? '').trim();
+    const amount = Number(categoryDraft.amount ?? 0);
+    const date = (categoryDraft.date ?? '').trim();
+    const description = (categoryDraft.description ?? '').trim();
+    if (!name || !amount || !date || !description) { alert(strings.requiredField); return; }
+    const dup = currentBudget.categories.some(
+      c => c.id !== editingCategoryId && c.name.toLowerCase() === name.toLowerCase()
+    );
+    if (dup) { alert(strings.dupCategoryWarning); return; }
+    const totalIfSaved = currentBudget.categories.reduce((acc, c) => {
+      if (c.id === editingCategoryId) return acc + amount;
+      return acc + c.amount;
+    }, 0);
+    if (totalIfSaved > totalBudget) {
+      alert(`Total of category caps would exceed total budget (${formatCurrency(totalBudget)}).`);
+      return;
     }
+    const updatedCats = currentBudget.categories.map((c) =>
+      c.id === editingCategoryId ? { ...c, name, amount, date, description } : c
+    );
+    setCurrentBudget({ ...currentBudget, categories: updatedCats });
+    cancelEditCategory();
   };
 
   const saveBudget = () => {
-    if (Object.keys(categories).length === 0) return;
-    
-    try {
-      const currentMonth = getCurrentMonth();
-      const budgetData: Budget = {
-        id: `budget-${currentMonth}`,
-        month: currentMonth,
-        totalBudget,
-        categories,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      // Save to localStorage
-      localStorage.setItem(`budget-${currentMonth}`, JSON.stringify(budgetData));
-      setCurrentBudget(budgetData);
-      alert(strings.budgetSaved);
-    } catch (error) {
-      console.error('Error saving budget:', error);
-    }
+    if (!currentBudget) return;
+    const nowIso = new Date().toISOString();
+    const data: Budget = { ...currentBudget, totalBudget, updatedAt: nowIso };
+    localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(data));
+    setCurrentBudget(data);
+    alert(strings.budgetSaved);
   };
 
+  // Expenses
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!expenseAmount || !expenseCategory || !expenseDescription) return;
-    
-    try {
-      const currentMonth = getCurrentMonth();
-      const newExpense: Expense = {
-        id: `expense-${Date.now()}`,
-        amount: expenseAmount,
-        category: expenseCategory,
-        description: expenseDescription,
-        date: new Date().toISOString().split('T')[0],
-        createdAt: new Date().toISOString()
-      };
-      
-      const updatedExpenses = [...expenses, newExpense];
-      setExpenses(updatedExpenses);
-      
-      // Save to localStorage
-      localStorage.setItem(`expenses-${currentMonth}`, JSON.stringify(updatedExpenses));
-      
-      // Reset form
-      setExpenseAmount(0);
-      setExpenseCategory('');
-      setExpenseDescription('');
-      
-      alert(strings.expenseAdded);
-    } catch (error) {
-      console.error('Error adding expense:', error);
+    if (!expenseAmount || !expenseCategory || !expenseDate || !expenseDescription.trim()) {
+      alert(strings.requiredField);
+      return;
     }
+    const newExp: Expense = {
+      id: `expense-${Date.now()}`,
+      amount: expenseAmount,
+      category: expenseCategory,
+      description: expenseDescription.trim(),
+      date: expenseDate,
+      createdAt: new Date().toISOString()
+    };
+    setExpenses(prev => [newExp, ...prev]);
+    setExpenseAmount(0); setExpenseCategory(''); setExpenseDate(''); setExpenseDescription('');
+    alert(strings.expenseAdded);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
+  const startEditExpense = (exp: Expense) => {
+    setEditingExpenseId(exp.id);
+    setExpenseDraft({ ...exp });
+  };
+  const cancelEditExpense = () => { setEditingExpenseId(null); setExpenseDraft({}); };
+  const saveEditedExpense = () => {
+    if (!editingExpenseId || !expenseDraft) return;
+    const amount = Number(expenseDraft.amount ?? 0);
+    const category = (expenseDraft.category ?? '').trim();
+    const date = (expenseDraft.date ?? '').trim();
+    const description = (expenseDraft.description ?? '').trim();
+    if (!amount || !category || !date || !description) { alert(strings.requiredField); return; }
+    setExpenses(prev => prev.map(e => e.id === editingExpenseId ? { ...e, amount, category, date, description } : e));
+    cancelEditExpense();
   };
 
-  const switchLanguage = (newLanguage: 'en' | 'id') => {
-    setCurrentLanguage(newLanguage);
+  const saveAllExpenses = () => {
+    // Save by month of each expense's date
+    const byMonth = expenses.reduce<Record<string, Expense[]>>((acc, e) => {
+      const m = toMonth(e.date);
+      (acc[m] ||= []).push(e);
+      return acc;
+    }, {});
+    Object.entries(byMonth).forEach(([month, list]) => {
+      localStorage.setItem(`expenses-${month}`, JSON.stringify(list));
+    });
+    // keep current month key fresh / clean
+    const cm = getCurrentMonth();
+    if (!byMonth[cm]) localStorage.removeItem(`expenses-${cm}`);
+    alert(strings.budgetSaved);
   };
+
+  // Enable “Generate Plan” when there are 5+ expenses
+  const canGeneratePlan = expenses.length >= 5;
+
+  const switchLanguage = (lang: 'en' | 'id') => setCurrentLanguage(lang);
 
   return (
     <div className="app">
-      <header>
-        <h1>{strings.appTitle}</h1>
-        <div className="header-controls">
-          {/* Language Switcher */}
-          <div className="language-switcher">
-            <button 
-              onClick={() => switchLanguage('en')}
-              className={currentLanguage === 'en' ? 'active' : ''}
-            >
-              EN
-            </button>
-            <button 
-              onClick={() => switchLanguage('id')}
-              className={currentLanguage === 'id' ? 'active' : ''}
-            >
-              ID
-            </button>
+      <style>{styles}</style>
+
+      <header className="container" style={{ paddingTop: 24 }}>
+        <h1 style={{ textAlign: 'center', marginBottom: 12 }}>{strings.appTitle}</h1>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <div className="row" role="group" aria-label="Language switcher">
+            <button onClick={() => switchLanguage('en')} className={currentLanguage === 'en' ? 'active' : ''}>EN</button>
+            <button onClick={() => switchLanguage('id')} className={currentLanguage === 'id' ? 'active' : ''}>ID</button>
+          </div>
+        </div>
+
+        {/* Goal context section */}
+        <div className="goal-card container" style={{ marginBottom: 24 }}>
+          <h3 style={{ margin: 0 }}>{strings.goalSectionTitle}</h3>
+          <div className="row">
+            <label htmlFor="wish" className="sr-only">{strings.wishLabel}</label>
+            <input
+              id="wish"
+              type="text"
+              value={wish}
+              onChange={(e) => setWish(e.target.value)}
+              placeholder={strings.wishPlaceholder}
+              required
+              style={{ flex: 1 }}
+            />
+
+            <label htmlFor="realizedDate" className="sr-only">{strings.realizedDateLabel}</label>
+            <input
+              id="realizedDate"
+              type="date"
+              value={realizedDate}
+              onChange={(e) => setRealizedDate(e.target.value)}
+              required
+            />
+
+            <label htmlFor="targetDate" className="sr-only">{strings.targetDateLabel}</label>
+            <input
+              id="targetDate"
+              type="date"
+              value={targetDate}
+              onChange={(e) => setTargetDate(e.target.value)}
+              required
+            />
           </div>
         </div>
       </header>
 
-      <main>
-        {/* Budget Setup Section */}
-        <section className="budget-setup">
-          <h2>{strings.monthlyBudgetSetup}</h2>
-          <div className="budget-form">
-            <div className="total-budget">
-              <label>{strings.totalMonthlyBudget}</label>
-              <input
-                type="number"
-                value={totalBudget}
-                onChange={(e) => setTotalBudget(Number(e.target.value))}
-                placeholder={strings.budgetAmountPlaceholder}
-              />
-            </div>
-            
-            <div className="category-input">
-              <h3>{strings.addBudgetCategory}</h3>
-              <input
-                type="text"
-                placeholder={strings.categoryNamePlaceholder}
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-              />
-              <input
-                type="number"
-                placeholder={strings.budgetAmountPlaceholder}
-                value={newCategoryAmount}
-                onChange={(e) => setNewCategoryAmount(Number(e.target.value))}
-              />
-              <button onClick={addCategory}>{strings.addCategory}</button>
+      <main className="container">
+        {/* Budget Setup */}
+        <section className="stack">
+          <h2 style={{ textAlign: 'center' }}>{strings.monthlyBudgetSetup}</h2>
+
+          <div className="stack">
+            <div className="stack">
+              <label htmlFor="totalBudget">{strings.totalMonthlyBudget}</label>
+              <div className="row">
+                <input
+                  id="totalBudget"
+                  type="number"
+                  value={totalBudget === 0 ? '' : totalBudget}
+                  onChange={(e) => setTotalBudget(e.target.value === '' ? 0 : Number(e.target.value))}
+                  placeholder={strings.budgetAmountPlaceholder}
+                  required
+                  min={0}
+                />
+                <div className="hint">{`Remaining to allocate: ${formatCurrency(Math.max(0, remainingToAllocate))}`}</div>
+              </div>
             </div>
 
-            {Object.keys(categories).length > 0 && (
+            <div className="stack">
+              <h3>{strings.addBudgetCategory}</h3>
+
+              <div className="row">
+                <label htmlFor="catName" className="sr-only">{strings.categoryName}</label>
+                <input
+                  id="catName"
+                  type="text"
+                  placeholder={strings.categoryNamePlaceholder}
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  required
+                />
+
+                <label htmlFor="catAmount" className="sr-only">{strings.budgetAmount}</label>
+                <input
+                  id="catAmount"
+                  type="number"
+                  placeholder={strings.budgetAmountPlaceholder}
+                  value={newCategoryAmount === 0 ? '' : newCategoryAmount}
+                  onChange={(e) => setNewCategoryAmount(e.target.value === '' ? 0 : Number(e.target.value))}
+                  min={1}
+                  required
+                />
+
+                <label htmlFor="catDate" className="sr-only">{strings.date}</label>
+                <input
+                  id="catDate"
+                  type="date"
+                  value={newCategoryDate}
+                  onChange={(e) => setNewCategoryDate(e.target.value)}
+                  required
+                />
+
+                <label htmlFor="catDesc" className="sr-only">{strings.description}</label>
+                <textarea
+                  id="catDesc"
+                  placeholder={strings.description}
+                  value={newCategoryDescription}
+                  onChange={(e) => setNewCategoryDescription(e.target.value)}
+                  required
+                />
+
+                <button onClick={addCategory} disabled={newCategoryAmount > remainingToAllocate}>
+                  {strings.addCategory}
+                </button>
+              </div>
+            </div>
+
+            {currentBudget && currentBudget.categories.length > 0 && (
               <div className="categories-list">
                 <h3>{strings.budgetCategories}</h3>
-                {Object.entries(categories).map(([name, amount]) => (
-                  <div key={name} className="category-item">
-                    <span>{name}: {formatCurrency(amount)}</span>
+                {currentBudget.categories.map((cat) => (
+                  <div key={cat.id} className="category-item">
+                    {editingCategoryId === cat.id ? (
+                      <div className="category-edit">
+                        <div className="row">
+                          <input
+                            aria-label={strings.categoryName}
+                            type="text"
+                            value={categoryDraft.name ?? ''}
+                            onChange={(e) => setCategoryDraft(d => ({ ...d, name: e.target.value }))}
+                          />
+                          <input
+                            aria-label={strings.budgetAmount}
+                            type="number"
+                            min={1}
+                            value={categoryDraft.amount == null || categoryDraft.amount === 0 ? '' : categoryDraft.amount}
+                            onChange={(e) =>
+                              setCategoryDraft(d => ({ ...d, amount: e.target.value === '' ? 0 : Number(e.target.value) }))
+                            }
+                          />
+                          <input
+                            aria-label={strings.date}
+                            type="date"
+                            value={categoryDraft.date ?? ''}
+                            onChange={(e) => setCategoryDraft(d => ({ ...d, date: e.target.value }))}
+                          />
+                        </div>
+                        <textarea
+                          aria-label={strings.description}
+                          value={categoryDraft.description ?? ''}
+                          onChange={(e) => setCategoryDraft(d => ({ ...d, description: e.target.value }))}
+                        />
+                        <div className="row-actions">
+                          <button onClick={saveEditedCategory}>{strings.save}</button>
+                          <button onClick={cancelEditCategory}>{strings.cancel}</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="category-view">
+                        <div className="row" style={{ justifyContent: 'space-between' }}>
+                          <div><strong>{cat.name}</strong>: {formatCurrency(cat.amount)}</div>
+                          <button aria-label="Edit category" onClick={() => startEditCategory(cat)}>✏️</button>
+                        </div>
+                        <div className="hint">{strings.date}: {cat.date}</div>
+                        <div style={{ whiteSpace: 'pre-wrap' }}>{cat.description}</div>
+                      </div>
+                    )}
                   </div>
                 ))}
-                <button onClick={saveBudget} className="save-budget">
-                  {strings.saveBudget}
-                </button>
+
+                <div className="save-row">
+                  <button onClick={saveBudget} className="save-budget">{strings.saveBudget}</button>
+                </div>
               </div>
             )}
           </div>
         </section>
 
-        {/* Expense Entry Section */}
+        {/* Expense Entry */}
         {currentBudget && (
-          <section className="expense-entry">
-            <h2>{strings.addExpense}</h2>
-            <form onSubmit={addExpense}>
+          <section className="stack" style={{ marginTop: 24 }}>
+            <h2 style={{ textAlign: 'center' }}>{strings.addExpense}</h2>
+
+            <form onSubmit={addExpense} className="row">
+              <label htmlFor="expAmount" className="sr-only">{strings.expenseAmount}</label>
               <input
+                id="expAmount"
                 type="number"
                 placeholder={strings.expenseAmountPlaceholder}
-                value={expenseAmount}
-                onChange={(e) => setExpenseAmount(Number(e.target.value))}
+                value={expenseAmount === 0 ? '' : expenseAmount}
+                onChange={(e) => setExpenseAmount(e.target.value === '' ? 0 : Number(e.target.value))}
                 required
+                min={1}
               />
+
+              <label htmlFor="expCategory" className="sr-only">{strings.selectCategory}</label>
               <select
+                id="expCategory"
+                name="expenseCategory"
                 value={expenseCategory}
                 onChange={(e) => setExpenseCategory(e.target.value)}
                 required
               >
                 <option value="">{strings.selectCategory}</option>
-                {Object.keys(currentBudget.categories).map(category => (
-                  <option key={category} value={category}>{category}</option>
+                {currentBudget.categories.map(category => (
+                  <option key={category.id} value={category.name}>{category.name}</option>
                 ))}
               </select>
+
+              <label htmlFor="expDate" className="sr-only">{strings.date}</label>
               <input
-                type="text"
+                id="expDate"
+                type="date"
+                value={expenseDate}
+                onChange={(e) => setExpenseDate(e.target.value)}
+                required
+              />
+
+              <label htmlFor="expDesc" className="sr-only">{strings.expenseDescription}</label>
+              <textarea
+                id="expDesc"
                 placeholder={strings.expenseDescriptionPlaceholder}
                 value={expenseDescription}
                 onChange={(e) => setExpenseDescription(e.target.value)}
                 required
               />
+
               <button type="submit">{strings.addExpenseButton}</button>
             </form>
           </section>
         )}
 
-        {/* Dashboard Section */}
+        {/* Dashboard */}
         {currentBudget && categorySummaries.length > 0 && (
-          <section className="dashboard">
-            <h2>{strings.budgetDashboard} - {getCurrentMonth()}</h2>
-            <div className="category-summaries">
+          <section className="stack" style={{ marginTop: 24 }}>
+            <h2 style={{ textAlign: 'center' }}>
+              {strings.budgetDashboard} - {currentBudget.month}
+            </h2>
+
+            <div className="dashboard-grid">
               {categorySummaries.map(summary => (
-                <div key={summary.categoryName} className="category-summary">
+                <div key={summary.categoryName} className="category-card">
                   <h4>{summary.categoryName}</h4>
-                  <div className="progress-bar">
-                    <div 
-                      className="progress-fill" 
-                      style={{ 
-                        width: `${summary.percentage}%`,
-                        backgroundColor: summary.percentage > 100 ? '#ef4444' : '#10b981'
+
+                  <div className="progress-bar" aria-label={`${summary.categoryName} progress`}>
+                    <div
+                      className="progress-fill"
+                      style={{
+                        width: `${summary.percentBar}%`,
+                        backgroundColor: summary.percentRaw > 100 ? '#ef4444' : '#10b981'
                       }}
-                    ></div>
+                    />
                   </div>
-                  <div className="category-details">
+
+                  <div className="category-stats">
                     <span>{strings.budget}: {formatCurrency(summary.budgeted)}</span>
                     <span>{strings.spent}: {formatCurrency(summary.spent)}</span>
                     <span>{strings.remaining}: {formatCurrency(summary.remaining)}</span>
-                    <span className={summary.percentage > 100 ? 'over-budget' : ''}>
-                      {summary.percentage.toFixed(1)}%
-                    </span>
                   </div>
                 </div>
               ))}
             </div>
           </section>
         )}
-        {/* Recent Expenses */}
+
+        {/* Expenses list (editable) */}
         {expenses.length > 0 && (
-          <section className="recent-expenses">
-            <h2>{strings.recentExpenses}</h2>
+          <section className="stack" style={{ marginTop: 24 }}>
+            <h2 style={{ textAlign: 'center' }}>{strings.recentExpenses}</h2>
+
             <div className="expenses-list">
-              {expenses.slice(-5).reverse().map(expense => (
+              {expenses.map(expense => (
                 <div key={expense.id} className="expense-item">
-                  <div className="expense-info">
-                    <span className="expense-description">{expense.description}</span>
-                    <span className="expense-category">{expense.category}</span>
-                  </div>
-                  <div className="expense-amount">
-                    {formatCurrency(expense.amount)}
-                  </div>
-                  <div className="expense-date">{expense.date}</div>
+                  {editingExpenseId === expense.id ? (
+                    <div className="expense-edit">
+                      <div className="row">
+                        <input
+                          aria-label={strings.expenseAmount}
+                          type="number"
+                          min={1}
+                          value={expenseDraft.amount == null || expenseDraft.amount === 0 ? '' : expenseDraft.amount}
+                          onChange={(e) =>
+                            setExpenseDraft(d => ({ ...d, amount: e.target.value === '' ? 0 : Number(e.target.value) }))
+                          }
+                        />
+                        <select
+                          aria-label={strings.selectCategory}
+                          value={expenseDraft.category ?? ''}
+                          onChange={(e) => setExpenseDraft(d => ({ ...d, category: e.target.value }))}
+                        >
+                          <option value="">{strings.selectCategory}</option>
+                          {currentBudget?.categories.map(c => (
+                            <option key={c.id} value={c.name}>{c.name}</option>
+                          ))}
+                        </select>
+                        <input
+                          aria-label={strings.date}
+                          type="date"
+                          value={expenseDraft.date ?? ''}
+                          onChange={(e) => setExpenseDraft(d => ({ ...d, date: e.target.value }))}
+                        />
+                      </div>
+                      <textarea
+                        aria-label={strings.description}
+                        value={expenseDraft.description ?? ''}
+                        onChange={(e) => setExpenseDraft(d => ({ ...d, description: e.target.value }))}
+                      />
+                      <div className="row-actions">
+                        <button onClick={saveEditedExpense}>{strings.save}</button>
+                        <button onClick={cancelEditExpense}>{strings.cancel}</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                          <span><strong>{expense.description}</strong></span>
+                          <span style={{ color:'#6b7280' }}>{expense.category}</span>
+                        </div>
+                        <div className="hint">{strings.date}: {expense.date}</div>
+                      </div>
+                      <div className="expense-amount">{formatCurrency(expense.amount)}</div>
+                      <button aria-label="Edit expense" onClick={() => startEditExpense(expense)}>✏️</button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
+
+            <div className="save-row" style={{ marginBottom: 8 }}>
+              <button onClick={saveAllExpenses}>{strings.saveExpensesButton}</button>
+            </div>
           </section>
         )}
+
+        {/* Extra notes */}
+        <section className="stack" style={{ marginTop: 16 }}>
+          <h3>{strings.extraNotesTitle}</h3>
+          <textarea
+            placeholder={strings.extraNotesPlaceholder}
+            value={extraNotes}
+            onChange={(e) => setExtraNotes(e.target.value)}
+            rows={3}
+          />
+        </section>
+
+        {/* Generate Plan (bottom) */}
+        <section className="stack" style={{ marginTop: 8, marginBottom: 48, alignItems: 'flex-end' }}>
+          {(!canGeneratePlan) && (
+            <div className="hint" style={{ width: '100%', textAlign: 'right' }}>
+              {strings.needMoreExpenses} ({expenses.length}/5)
+            </div>
+          )}
+          <button
+            onClick={() => {}}
+            disabled={!canGeneratePlan}
+            aria-describedby="genplan-hint"
+          >
+            {strings.generatePlan}
+          </button>
+        </section>
       </main>
     </div>
   );
 }
 
-export default BudgetTracker;
+export default App;
