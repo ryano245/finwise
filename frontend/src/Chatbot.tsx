@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 
@@ -6,6 +6,28 @@ const Chat: React.FC = () => {
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom when messages update
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  useEffect(() => {
+    const sendIntroMessage = async () => {
+      const res = await fetch("http://localhost:5001/api/chat", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: "Introduce yourself to the user and explain what you can help with."
+        })
+      });
+      const data = await res.json();
+      setMessages([{ sender: 'bot', text: data.reply }]);
+    };
+  
+    sendIntroMessage();
+  }, []);
 
   const navigate = useNavigate();
 
@@ -61,6 +83,7 @@ const Chat: React.FC = () => {
           borderRadius: "8px",
           padding: "1rem",
           height: "400px",
+          width: "450px",
           overflowY: "auto",
           backgroundColor: "#f9f9f9",
         }}
@@ -93,6 +116,7 @@ const Chat: React.FC = () => {
           </div>
         ))}
         {loading && <div>Bot is typing...</div>}
+        <div ref={chatEndRef}></div>
       </div>
 
       {/* Input Row */}
