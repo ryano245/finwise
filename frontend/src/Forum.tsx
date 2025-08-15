@@ -15,7 +15,7 @@ const Forum: React.FC = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/chat`);
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/chat`);
         const data = await res.json();
         setPosts(data);
       } catch (err) {
