@@ -19,7 +19,7 @@ const Chat: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: "Introduce yourself to the user in English and explain what you can help with."
+          message: "Introduce yourself to the user and explain what you can help with. Speak in English."
         })
       });
       const data = await res.json();
