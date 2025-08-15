@@ -587,7 +587,24 @@ function App() {
                   id="totalBudget"
                   type="number"
                   value={totalBudget === 0 ? '' : totalBudget}
-                  onChange={(e) => setTotalBudget(e.target.value === '' ? 0 : Number(e.target.value))}
+                  onChange={(e) => {
+                    const newTotal = e.target.value === '' ? 0 : Number(e.target.value);
+                    setTotalBudget(newTotal);
+                    
+                    // Create budget object if it doesn't exist and total > 0
+                    if (!currentBudget && newTotal > 0) {
+                      const currentMonth = getCurrentMonth();
+                      const newBudget: Budget = {
+                        id: `budget-${currentMonth}`,
+                        month: currentMonth,
+                        totalBudget: newTotal,
+                        categories: [],
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                      };
+                      setCurrentBudget(newBudget);
+                    }
+                  }}
                   placeholder={strings.budgetAmountPlaceholder}
                   required
                   min={0}
