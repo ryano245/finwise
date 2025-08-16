@@ -81,6 +81,9 @@ export interface LanguageStrings {
 
   dupCategoryWarning: string;
   requiredField: string;
+
+  // <-- ADD THIS
+  planOutputPlaceholder: string;
 }
 
 export const englishStrings: LanguageStrings = {
@@ -164,7 +167,9 @@ export const englishStrings: LanguageStrings = {
   loading: "Loading...", save: "Save", cancel: "Cancel", delete: "Delete",
 
   dupCategoryWarning: "Category already exists (case-insensitive).",
-  requiredField: "This field is required."
+  requiredField: "This field is required.",
+
+  planOutputPlaceholder: "Your generated plan will appear here."
 };
 
 export const indonesianStrings: LanguageStrings = {
@@ -248,5 +253,7 @@ export const indonesianStrings: LanguageStrings = {
   loading: "Memuat...", save: "Simpan", cancel: "Batal", delete: "Hapus",
 
   dupCategoryWarning: "Kategori sudah ada (abaikan besar/kecil huruf).",
-  requiredField: "Wajib diisi."
+  requiredField: "Wajib diisi.",
+
+  planOutputPlaceholder: "Rencana yang dihasilkan akan muncul di sini."
 };

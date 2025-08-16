@@ -1,6 +1,8 @@
 /** =======================
  *         Types
  *  ======================= */
+
+/** ===== Budgeting ===== */
 export interface CategoryBudget {
   id: string;
   name: string;
@@ -36,7 +38,7 @@ export interface CategorySummary {
   percentBar: number;
 }
 
-/** Structured goal so we can support multiple goals */
+/** ===== Goals ===== */
 export interface Goal {
   id: string;
   wish: string;
