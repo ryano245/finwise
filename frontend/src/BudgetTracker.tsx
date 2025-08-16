@@ -1,7 +1,6 @@
-// frontend/src/BudgetTracker.tsx
+// File: frontend/src/BudgetTracker.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
-
 import type { LanguageStrings } from './utilities/budget';
 import { englishStrings, indonesianStrings } from './utilities/budget';
 import { budgetTrackerStyles } from './styles/BudgetTracker';
@@ -13,44 +12,41 @@ import {
   Goal,
 } from './types/budget';
 
-function App() {
-  // inject component-scoped styles
+import GoalTab from './tabs/GoalTab';
+import MonthlyBudgetSetup from './tabs/MonthlyBudgetSetup';
+import BudgetDashboard from './tabs/BudgetDashboard';
+import GeneratePlan from './tabs/GeneratePlan';
+
+const BudgetTracker: React.FC = () => {
   const styles = budgetTrackerStyles;
 
-  /** Language */
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'id'>(() => {
     const saved = localStorage.getItem('lang');
     return (saved === 'id' || saved === 'en') ? saved : 'en';
   });
-  const strings: LanguageStrings =
-    currentLanguage === 'en' ? englishStrings : indonesianStrings;
+  const strings: LanguageStrings = currentLanguage === 'en' ? englishStrings : indonesianStrings;
   useEffect(() => { localStorage.setItem('lang', currentLanguage); }, [currentLanguage]);
 
-  /** Budget + expenses state */
+  // All state (lifted)
   const [currentBudget, setCurrentBudget] = useState<Budget | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
-  /** Add-category form */
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryAmount, setNewCategoryAmount] = useState<number>(0);
   const [newCategoryDate, setNewCategoryDate] = useState<string>('');
   const [newCategoryDescription, setNewCategoryDescription] = useState<string>('');
 
-  /** Edit-category inline */
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [categoryDraft, setCategoryDraft] = useState<Partial<CategoryBudget>>({});
 
-  /** Add-expense form */
   const [expenseAmount, setExpenseAmount] = useState<number>(0);
   const [expenseCategory, setExpenseCategory] = useState('');
   const [expenseDate, setExpenseDate] = useState<string>('');
   const [expenseDescription, setExpenseDescription] = useState<string>('');
 
-  /** Edit-expense inline */
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [expenseDraft, setExpenseDraft] = useState<Partial<Expense>>({});
 
-  /** Total budget field */
   const [totalBudget, setTotalBudget] = useState<number>(0);
 
   /** Income/Allowance field */
@@ -62,7 +58,6 @@ function App() {
     if (raw) {
       try { return JSON.parse(raw) as Goal[]; } catch { /* fallthrough */ }
     }
-    // migrate from legacy single-goal fields if any
     const legacy = {
       wish: localStorage.getItem('wish') ?? '',
       goalType: localStorage.getItem('goal_type') ?? 'emergency',
@@ -79,78 +74,26 @@ function App() {
       motivation: localStorage.getItem('goal_motivation') ?? '',
     };
     const hasAny = legacy.wish || legacy.targetDate || legacy.targetAmount || legacy.currentSavings;
-    return hasAny ? [{
-      id: `goal-${Date.now()}`,
-      ...legacy
-    }] : [];
+    return hasAny ? [{ id: `goal-${Date.now()}`, ...legacy }] : [];
   });
   useEffect(() => { localStorage.setItem('goals_v1', JSON.stringify(goals)); }, [goals]);
 
-  // per-goal chips text
   const [nonNegInputMap, setNonNegInputMap] = useState<Record<string, string>>({});
-  const setNonNegInputFor = (goalId: string, value: string) =>
-    setNonNegInputMap(m => ({ ...m, [goalId]: value }));
+  const setNonNegInputFor = (goalId: string, value: string) => setNonNegInputMap(m => ({ ...m, [goalId]: value }));
 
-  const updateGoal = (id: string, patch: Partial<Goal>) =>
-    setGoals(gs => gs.map(g => g.id === id ? { ...g, ...patch } : g));
+  const updateGoal = (id: string, patch: Partial<Goal>) => setGoals(gs => gs.map(g => g.id === id ? { ...g, ...patch } : g));
+  const addNewGoal = () => setGoals(gs => [...gs, { id: `goal-${Date.now()}`, wish: '', goalType: 'emergency', goalTypeOther: '', targetAmount: 0, targetAmountUnknown: false, startDate: '', targetDate: '', flexibility: 'hard', currentSavings: 0, priority: 'medium', riskProfile: 'balanced', nonNegotiables: [], motivation: '' }]);
+  const addNonNeg = (goalId: string) => { const v = (nonNegInputMap[goalId] ?? '').trim(); if (!v) return; setGoals(gs => gs.map(g => g.id === goalId ? { ...g, nonNegotiables: g.nonNegotiables.includes(v) ? g.nonNegotiables : [...g.nonNegotiables, v] } : g)); setNonNegInputFor(goalId, ''); };
+  const removeNonNeg = (goalId: string, v: string) => setGoals(gs => gs.map(g => g.id === goalId ? { ...g, nonNegotiables: g.nonNegotiables.filter(x => x !== v) } : g));
+  const deleteGoal = (id: string) => setGoals(gs => gs.filter(g => g.id !== id));
 
-  const addNewGoal = () => {
-    setGoals(gs => [...gs, {
-      id: `goal-${Date.now()}`,
-      wish: '',
-      goalType: 'emergency',
-      goalTypeOther: '',
-      targetAmount: 0,
-      targetAmountUnknown: false,
-      startDate: '',
-      targetDate: '',
-      flexibility: 'hard',
-      currentSavings: 0,
-      priority: 'medium',
-      riskProfile: 'balanced',
-      nonNegotiables: [],
-      motivation: ''
-    }]);
-  };
-
-  const addNonNeg = (goalId: string) => {
-    const v = (nonNegInputMap[goalId] ?? '').trim();
-    if (!v) return;
-    setGoals(gs => gs.map(g =>
-      g.id === goalId
-        ? { ...g, nonNegotiables: g.nonNegotiables.includes(v) ? g.nonNegotiables : [...g.nonNegotiables, v] }
-        : g
-    ));
-    setNonNegInputFor(goalId, '');
-  };
-
-  const removeNonNeg = (goalId: string, v: string) => {
-    setGoals(gs => gs.map(g =>
-      g.id === goalId ? { ...g, nonNegotiables: g.nonNegotiables.filter(x => x !== v) } : g
-    ));
-  };
-
-  // NEW: delete a goal
-  const deleteGoal = (id: string) => {
-    setGoals(gs => gs.filter(g => g.id !== id));
-  };
-
-  /** Helpers */
-  const getCurrentMonth = () => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  };
+  const getCurrentMonth = () => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`; };
   const toMonth = (yyyyMmDd: string) => yyyyMmDd.slice(0, 7);
+  const formatCurrency = (amount: number) => `Rp ${Math.round(amount).toLocaleString('id-ID', { useGrouping: false, maximumFractionDigits: 0 })}`;
 
-  // IDR without thousand separators to avoid dot-as-decimal confusion
-  const formatCurrency = (amount: number) =>
-    `Rp ${Math.round(amount).toLocaleString('id-ID', { useGrouping: false, maximumFractionDigits: 0 })}`;
-
-  /** Load data on mount */
   useEffect(() => {
     try {
       const currentMonth = getCurrentMonth();
-
       const storedBudget = localStorage.getItem(`budget-${currentMonth}`);
       if (storedBudget) {
         const raw = JSON.parse(storedBudget) as any;
@@ -158,13 +101,7 @@ function App() {
         if (Array.isArray(raw.categories)) {
           categories = raw.categories as CategoryBudget[];
         } else if (raw.categories && typeof raw.categories === 'object') {
-          categories = Object.entries(raw.categories).map(([name, amount], i) => ({
-            id: `cat-${i}-${name}`,
-            name,
-            amount: Number(amount),
-            date: `${currentMonth}-01`,
-            description: ''
-          }));
+          categories = Object.entries(raw.categories).map(([name, amount], i) => ({ id: `cat-${i}-${name}`, name, amount: Number(amount), date: `${currentMonth}-01`, description: '' }));
         }
         const budget: Budget = {
           id: raw.id ?? `budget-${currentMonth}`,
@@ -186,64 +123,35 @@ function App() {
         const list = JSON.parse(storedExpenses) as Expense[];
         setExpenses(list);
       }
-    } catch (e) {
-      console.error('Error loading data:', e);
-    }
+    } catch (e) { console.error('Error loading data:', e); }
   }, []);
 
-  /** Derived summaries */
   const categorySummaries: CategorySummary[] = useMemo(() => {
     if (!currentBudget) return [];
     return currentBudget.categories.map((cat) => {
       const spent = expenses.filter(e => e.category === cat.name).reduce((sum, e) => sum + e.amount, 0);
       const remaining = cat.amount - spent;
       const percentRaw = cat.amount > 0 ? (spent / cat.amount) * 100 : 0;
-      return {
-        categoryName: cat.name,
-        budgeted: cat.amount,
-        spent,
-        remaining,
-        percentRaw,
-        percentBar: Math.max(0, Math.min(percentRaw, 100))
-      };
+      return { categoryName: cat.name, budgeted: cat.amount, spent, remaining, percentRaw, percentBar: Math.max(0, Math.min(percentRaw, 100)) };
     });
   }, [currentBudget, expenses]);
 
-  const sumCategoryCaps = useMemo(
-    () => currentBudget?.categories.reduce((acc, c) => acc + (c.amount || 0), 0) ?? 0,
-    [currentBudget]
-  );
+  const sumCategoryCaps = useMemo(() => currentBudget?.categories.reduce((acc, c) => acc + (c.amount || 0), 0) ?? 0, [currentBudget]);
   const remainingToAllocate = Math.max(0, totalBudget - sumCategoryCaps);
 
-  /** Categories */
   const addCategory = () => {
     if (!currentBudget) return;
     const name = newCategoryName.trim();
-    if (!name || !newCategoryAmount || !newCategoryDate || !newCategoryDescription.trim()) {
-      alert(strings.requiredField);
-      return;
-    }
+    if (!name || !newCategoryAmount || !newCategoryDate || !newCategoryDescription.trim()) { alert(strings.requiredField); return; }
     const exists = currentBudget.categories.some((c) => c.name.toLowerCase() === name.toLowerCase());
     if (exists) { alert(strings.dupCategoryWarning); return; }
-    if (newCategoryAmount > remainingToAllocate) {
-      alert(`Cannot allocate more than remaining: ${formatCurrency(remainingToAllocate)}`);
-      return;
-    }
-    const newCat: CategoryBudget = {
-      id: `cat-${Date.now()}`,
-      name,
-      amount: newCategoryAmount,
-      date: newCategoryDate,
-      description: newCategoryDescription.trim()
-    };
+    if (newCategoryAmount > remainingToAllocate) { alert(`Cannot allocate more than remaining: ${formatCurrency(remainingToAllocate)}`); return; }
+    const newCat: CategoryBudget = { id: `cat-${Date.now()}`, name, amount: newCategoryAmount, date: newCategoryDate, description: newCategoryDescription.trim() };
     setCurrentBudget({ ...currentBudget, categories: [...currentBudget.categories, newCat] });
     setNewCategoryName(''); setNewCategoryAmount(0); setNewCategoryDate(''); setNewCategoryDescription('');
   };
 
-  const startEditCategory = (cat: CategoryBudget) => {
-    setEditingCategoryId(cat.id);
-    setCategoryDraft({ ...cat });
-  };
+  const startEditCategory = (cat: CategoryBudget) => { setEditingCategoryId(cat.id); setCategoryDraft({ ...cat }); };
   const cancelEditCategory = () => { setEditingCategoryId(null); setCategoryDraft({}); };
   const saveEditedCategory = () => {
     if (!currentBudget || !editingCategoryId || !categoryDraft) return;
@@ -252,68 +160,32 @@ function App() {
     const date = (categoryDraft.date ?? '').trim();
     const description = (categoryDraft.description ?? '').trim();
     if (!name || !amount || !date || !description) { alert(strings.requiredField); return; }
-    const dup = currentBudget.categories.some(
-      c => c.id !== editingCategoryId && c.name.toLowerCase() === name.toLowerCase()
-    );
+    const dup = currentBudget.categories.some(c => c.id !== editingCategoryId && c.name.toLowerCase() === name.toLowerCase());
     if (dup) { alert(strings.dupCategoryWarning); return; }
-    const totalIfSaved = currentBudget.categories.reduce((acc, c) => {
-      if (c.id === editingCategoryId) return acc + amount;
-      return acc + c.amount;
-    }, 0);
-    if (totalIfSaved > totalBudget) {
-      alert(`Total of category caps would exceed total budget (${formatCurrency(totalBudget)}).`);
-      return;
-    }
-    const updatedCats = currentBudget.categories.map((c) =>
-      c.id === editingCategoryId ? { ...c, name, amount, date, description } : c
-    );
+    const totalIfSaved = currentBudget.categories.reduce((acc, c) => { if (c.id === editingCategoryId) return acc + amount; return acc + c.amount; }, 0);
+    if (totalIfSaved > totalBudget) { alert(`Total of category caps would exceed total budget (${formatCurrency(totalBudget)}).`); return; }
+    const updatedCats = currentBudget.categories.map((c) => c.id === editingCategoryId ? { ...c, name, amount, date, description } : c);
     setCurrentBudget({ ...currentBudget, categories: updatedCats });
     cancelEditCategory();
   };
 
-  // NEW: delete a category
-  const deleteCategory = (id: string) => {
-    if (!currentBudget) return;
-    if (editingCategoryId === id) cancelEditCategory();
-    setCurrentBudget({
-      ...currentBudget,
-      categories: currentBudget.categories.filter(c => c.id !== id),
-    });
-  };
+  const deleteCategory = (id: string) => { if (!currentBudget) return; if (editingCategoryId === id) cancelEditCategory(); setCurrentBudget({ ...currentBudget, categories: currentBudget.categories.filter(c => c.id !== id) }); };
 
-  const saveBudget = () => {
-    if (!currentBudget) return;
-    const nowIso = new Date().toISOString();
-    const data: Budget = { ...currentBudget, totalBudget, updatedAt: nowIso };
-    localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(data));
-    setCurrentBudget(data);
-    alert(strings.budgetSaved);
-  };
+  const saveBudget = () => { if (!currentBudget) return; const nowIso = new Date().toISOString(); const data: Budget = { ...currentBudget, totalBudget, updatedAt: nowIso }; localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(data)); setCurrentBudget(data); alert(strings.budgetSaved); };
 
-  /** Expenses */
-  const addExpense = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!expenseAmount || !expenseCategory || !expenseDate || !expenseDescription.trim()) {
-      alert(strings.requiredField);
-      return;
-    }
-    const newExp: Expense = {
-      id: `expense-${Date.now()}`,
-      amount: expenseAmount,
-      category: expenseCategory,
-      description: expenseDescription.trim(),
-      date: expenseDate,
-      createdAt: new Date().toISOString()
-    };
+  const addExpense = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!expenseAmount || !expenseCategory || !expenseDate || !expenseDescription.trim()) { alert(strings.requiredField); return; }
+    const newExp: Expense = { id: `expense-${Date.now()}`, amount: expenseAmount, category: expenseCategory, description: expenseDescription.trim(), date: expenseDate, createdAt: new Date().toISOString() };
     setExpenses(prev => [newExp, ...prev]);
+    // auto-persist this expense immediately
+    const cm = getCurrentMonth();
+    const updated = [newExp, ...expenses].filter(Boolean);
+    localStorage.setItem(`expenses-${cm}`, JSON.stringify(updated));
     setExpenseAmount(0); setExpenseCategory(''); setExpenseDate(''); setExpenseDescription('');
-    alert(strings.expenseAdded);
   };
 
-  const startEditExpense = (exp: Expense) => {
-    setEditingExpenseId(exp.id);
-    setExpenseDraft({ ...exp });
-  };
+  const startEditExpense = (exp: Expense) => { setEditingExpenseId(exp.id); setExpenseDraft({ ...exp }); };
   const cancelEditExpense = () => { setEditingExpenseId(null); setExpenseDraft({}); };
   const saveEditedExpense = () => {
     if (!editingExpenseId || !expenseDraft) return;
@@ -322,44 +194,26 @@ function App() {
     const date = (expenseDraft.date ?? '').trim();
     const description = (expenseDraft.description ?? '').trim();
     if (!amount || !category || !date || !description) { alert(strings.requiredField); return; }
-    setExpenses(prev => prev.map(e => e.id === editingExpenseId ? { ...e, amount, category, date, description } : e));
+    const updated = expenses.map(e => e.id === editingExpenseId ? { ...e, amount, category, date, description } : e);
+    setExpenses(updated);
+    const cm = getCurrentMonth();
+    localStorage.setItem(`expenses-${cm}`, JSON.stringify(updated));
     cancelEditExpense();
   };
 
-  // NEW: delete an expense
-  const deleteExpense = (id: string) => {
-    if (editingExpenseId === id) cancelEditExpense();
-    setExpenses(prev => prev.filter(e => e.id !== id));
-  };
-
-  const saveAllExpenses = () => {
-    const byMonth = expenses.reduce<Record<string, Expense[]>>((acc, e) => {
-      const m = toMonth(e.date);
-      (acc[m] ||= []).push(e);
-      return acc;
-    }, {});
-    Object.entries(byMonth).forEach(([month, list]) => {
-      localStorage.setItem(`expenses-${month}`, JSON.stringify(list));
-    });
-    const cm = getCurrentMonth();
-    if (!byMonth[cm]) localStorage.removeItem(`expenses-${cm}`);
-    alert(strings.budgetSaved);
-  };
-
-  /** Generate Plan gate */
-  const canGeneratePlan = expenses.length >= 5;
+  const deleteExpense = (id: string) => { if (editingExpenseId === id) cancelEditExpense(); const updated = expenses.filter(e => e.id !== id); setExpenses(updated); const cm = getCurrentMonth(); localStorage.setItem(`expenses-${cm}`, JSON.stringify(updated)); };
 
   const switchLanguage = (lang: 'en' | 'id') => setCurrentLanguage(lang);
 
-  /** Extra notes (FIX: make it a controlled input synced to localStorage) */
   const [extraNotes, setExtraNotes] = useState<string>(() => localStorage.getItem('extra_notes') ?? '');
-  useEffect(() => {
-    localStorage.setItem('extra_notes', extraNotes);
-  }, [extraNotes]);
+  useEffect(() => { localStorage.setItem('extra_notes', extraNotes); }, [extraNotes]);
 
-  /** =======================
-   *         Render
-   *  ======================= */
+  // Tabs
+  const [activeTab, setActiveTab] = useState<'goal'|'setup'|'dashboard'|'plan'>('goal');
+
+  const canGeneratePlan = expenses.length >= 5;
+  const onGenerate = () => { alert('Generate plan clicked — integrate LLM or planner here.'); };
+
   return (
     <div className="app">
       <style>{styles}</style>
@@ -903,32 +757,11 @@ function App() {
         {/* Extra notes (FIXED) */}
         <section className="stack" style={{ marginTop: 16 }}>
           <h3>{strings.extraNotesTitle}</h3>
-          <textarea
-            placeholder={strings.extraNotesPlaceholder}
-            value={extraNotes}
-            onChange={(e) => setExtraNotes(e.target.value)}
-            rows={3}
-          />
-        </section>
-
-        {/* Generate Plan */}
-        <section className="stack" style={{ marginTop: 8, marginBottom: 48, alignItems: 'flex-end' }}>
-          {(!canGeneratePlan) && (
-            <div id="genplan-requirements" className="hint" style={{ width: '100%', textAlign: 'right' }}>
-              {strings.needMoreExpenses} ({expenses.length}/5)
-            </div>
-          )}
-          <button
-            onClick={() => {}}
-            disabled={!canGeneratePlan}
-            aria-describedby={!canGeneratePlan ? 'genplan-requirements' : undefined}
-          >
-            {strings.generatePlan}
-          </button>
+          <textarea placeholder={strings.extraNotesPlaceholder} value={extraNotes} onChange={(e) => setExtraNotes(e.target.value)} rows={3} />
         </section>
       </main>
     </div>
   );
-}
+};
 
-export default App;
+export default BudgetTracker;
