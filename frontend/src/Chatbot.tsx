@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 
-const Chat: React.FC = () => {
+const Chatbot: React.FC = () => {
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,7 @@ const Chat: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: "Introduce yourself to the user and explain what you can help with. Speak in English."
+          message: "Introduce yourself to the user and explain what you can help with. Speak only in English."
         })
       });
       const data = await res.json();
@@ -173,4 +173,4 @@ const Chat: React.FC = () => {
   );
 };
 
-export default Chat;
+export default Chatbot;

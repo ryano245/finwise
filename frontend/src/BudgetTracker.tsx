@@ -13,7 +13,7 @@ import {
   Goal,
 } from './types/budget';
 
-function App() {
+const BudgetTracker: React.FC = () => {
   // inject component-scoped styles
   const styles = budgetTrackerStyles;
 
@@ -507,7 +507,7 @@ function App() {
                   min={0}
                 />
 
-                <label htmlFor={`priority-${goal.id}`} className="sr-only">{strings.priorityLabel}</label>
+                <label htmlFor={`priority-${goal.id}`}>{strings.priorityLabel}: </label>
                 <select
                   id={`priority-${goal.id}`}
                   value={goal.priority}
@@ -518,7 +518,7 @@ function App() {
                   <option value="low">{strings.priorityOptions.low}</option>
                 </select>
 
-                <label htmlFor={`risk-${goal.id}`} className="sr-only">{strings.riskLabel}</label>
+                <label htmlFor={`risk-${goal.id}`}>{strings.riskLabel}: </label>
                 <select
                   id={`risk-${goal.id}`}
                   value={goal.riskProfile}
@@ -930,4 +930,4 @@ function App() {
   );
 }
 
-export default App;
+export default BudgetTracker;
