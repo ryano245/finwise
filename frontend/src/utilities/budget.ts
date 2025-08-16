@@ -86,7 +86,7 @@ export interface LanguageStrings {
 export const englishStrings: LanguageStrings = {
   appTitle: "Finwise - Budget Tracker",
 
-  goalSectionTitle: "Your Goal",
+  goalSectionTitle: "Goals",
   wishLabel: "What do you wish for?",
   wishPlaceholder: "e.g., Buy a laptop for school, build 3-month emergency fund, pay off paylater",
 
