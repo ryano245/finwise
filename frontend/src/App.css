@@ -73,7 +73,6 @@
   flex-direction: column;
   height: 100vh;            /* full viewport height */
   min-height: 100vh;
-  overflow: visible;         /* prevent the whole page from scrolling */
 }
 
 /* topbar: non-scrolling header */
