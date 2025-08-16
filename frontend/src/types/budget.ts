@@ -13,7 +13,7 @@ export interface CategoryBudget {
 
 export interface Budget {
   id?: string;
-  month: string;              // YYYY-MM
+  month: string; // Not in use
   totalBudget: number;
   categories: CategoryBudget[];
   createdAt: string;          // ISO
@@ -52,6 +52,6 @@ export interface Goal {
   currentSavings: number;
   priority: 'high' | 'medium' | 'low';
   riskProfile: 'conservative' | 'balanced' | 'aggressive';
-  nonNegotiables: string[];
+  nonNegotiables: string[]; // Not in use
   motivation: string;
 }

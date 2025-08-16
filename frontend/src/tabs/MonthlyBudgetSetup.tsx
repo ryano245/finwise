@@ -91,7 +91,6 @@ export default function MonthlyBudgetSetup(props: Props) {
             <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
               <input id="catName" type="text" placeholder={strings.categoryNamePlaceholder} value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} required />
               <input id="catAmount" type="number" placeholder={strings.budgetAmountPlaceholder} value={newCategoryAmount === 0 ? '' : newCategoryAmount} onChange={(e) => setNewCategoryAmount(e.target.value === '' ? 0 : Number(e.target.value))} min={1} required />
-              <input id="catDate" type="date" value={newCategoryDate} onChange={(e) => setNewCategoryDate(e.target.value)} required />
               <textarea id="catDesc" placeholder={strings.description} value={newCategoryDescription} onChange={(e) => setNewCategoryDescription(e.target.value)} required style={{ flex: 1 }} />
               <button onClick={addCategory} disabled={newCategoryAmount > remainingToAllocate}>{strings.addCategory}</button>
             </div>
@@ -140,6 +139,10 @@ export default function MonthlyBudgetSetup(props: Props) {
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <h2 style={{ margin: 0 }}>{strings.addExpense}</h2>
         </div>
+
+        <p style={{ marginBottom: '1rem', color: '#6b7280', fontSize: '1rem', textAlign: 'left' }}>
+          {strings.addExpenseDescription}
+        </p>
 
         <hr style={{ margin: '1rem 0', border: '0.5px solid lightgrey' }} />
 
