@@ -53,6 +53,9 @@ function App() {
   /** Total budget field */
   const [totalBudget, setTotalBudget] = useState<number>(0);
 
+  /** Income/Allowance field */
+  const [incomeAllowance, setIncomeAllowance] = useState<number>(0);
+
   /** ===== Goals (multi) ===== */
   const [goals, setGoals] = useState<Goal[]>(() => {
     const raw = localStorage.getItem('goals_v1');
@@ -166,13 +169,16 @@ function App() {
         const budget: Budget = {
           id: raw.id ?? `budget-${currentMonth}`,
           month: raw.month ?? currentMonth,
+          incomeAllowance: Number(raw.incomeAllowance ?? 0),
           totalBudget: Number(raw.totalBudget ?? 0),
           categories,
           createdAt: raw.createdAt ?? new Date().toISOString(),
           updatedAt: raw.updatedAt ?? new Date().toISOString()
         };
         setCurrentBudget(budget);
+        setIncomeAllowance(budget.incomeAllowance);
         setTotalBudget(budget.totalBudget);
+      
       }
 
       const storedExpenses = localStorage.getItem(`expenses-${currentMonth}`);
@@ -573,6 +579,24 @@ function App() {
           ))}
         </div>
       </header>
+      
+      <div className="stack">
+            <div className="stack">
+              <label htmlFor="incomeAllowance">{strings.totalMonthlyBudget}</label>
+              <div className="row">
+                <input
+                  id="incomeAllowance"
+                  type="number"
+                  value={incomeAllowance === 0 ? '' : incomeAllowance}
+                  onChange={(e) => setIncomeAllowance(e.target.value === '' ? 0 : Number(e.target.value))}
+                  placeholder={strings.budgetAmountPlaceholder}
+                  required
+                  min={0}
+                />
+                <div className="hint">{`Remaining to allocate: ${formatCurrency(Math.max(0, remainingToAllocate))}`}</div>
+              </div>
+            </div>
+        </div>
 
       <main className="container">
         {/* Budget Setup */}
