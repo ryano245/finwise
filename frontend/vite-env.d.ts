@@ -2,7 +2,7 @@
 
 // (optional) strongly type your env vars
 interface ImportMetaEnv {
-  readonly VITE_API_URL: string
+  readonly VITE_BACKEND_URL: string
   // add more as needed
 }
 interface ImportMeta {
