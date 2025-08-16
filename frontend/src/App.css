@@ -61,3 +61,62 @@
   gap: 6px;
   padding: 6px 12px;
 }
+
+/* Set all text inside .goal-card to black, but exclude buttons and button children */
+.goal-card :not(:is(button, button *)) {
+  color: #000;
+}
+
+/* make the app a full-height column so header stays visible and main scrolls */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;            /* full viewport height */
+  min-height: 100vh;
+  overflow: visible;         
+}
+
+/* topbar: non-scrolling header */
+.topbar {
+  flex: 0 0 auto;           /* do not grow/shrink; keep natural height */
+  position: relative;       /* keep it in normal flow */
+  z-index: 20;
+  background: #fff;         /* ensure it covers content when overlapping */
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+
+/* optional: ensure tab buttons remain clickable and visible */
+.tabs button.active {
+  z-index: 25;
+}
+
+/* Panel/card wrapper used across tabs */
+.panel-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  padding: 16px;
+  margin-bottom: 16px;
+  color: #000; /* fallback text color */
+}
+
+/* Make all text inside the panel-card black, but avoid forcing button text color */
+.panel-card :not(button):not(button *) {
+  color: #000;
+}
+
+/* fallback for older browsers: set panel text black, then reset buttons to default */
+.panel-card {
+  color: #000;
+}
+.panel-card button,
+.panel-card button * {
+  color: initial;
+}
+
+/* Optional small layout helpers */
+.panel-card h2, .panel-card h3 {
+  color: #111;
+  margin: 0 0 8px 0;
+}
