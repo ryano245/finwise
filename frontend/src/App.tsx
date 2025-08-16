@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link} from 'react-router-dom';
-import BudgetTracker from './BudgetTracker'
-import Chatbot from './Chatbot';
+import BudgetTracker from './BudgetTracker';
+import Confessions from './Confessions';
 import Post from './Post';
 import Forum from './Forum';
 import Layout from './Layout';
@@ -19,14 +19,14 @@ const App: React.FC = () => {
                 <Link to="/budget">
                   <button>Budget Tracker</button>
                 </Link>
-                <Link to="/chatbot">
-                  <button>Chatbot</button>
+                <Link to="/confessions">
+                  <button>Confessions</button>
                 </Link>
               </div>
             </div>
           } />
           <Route path="/budget" element={<BudgetTracker />} />
-          <Route path="/chatbot" element={<Chatbot />} />
+          <Route path="/confessions" element={<Confessions />} />
           <Route path="/post" element={<Post />} />
           <Route path="/forum" element={<Forum />} />
         </Routes>

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 
-const Chatbot: React.FC = () => {
+const Confessions: React.FC = () => {
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,31 +22,20 @@ const Chatbot: React.FC = () => {
   }, [messages, loading]);
 
   useEffect(() => {
-    const sendIntroMessage = async () => {
-        setLoading(true);
-        try {
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: 
-                        currentLanguage === "en"
-                            ? "Introduce yourself to the user and explain what you can help with. Speak only in English."
-                            : "Introduce yourself to the user and explain what you can help with. Speak only in Indonesian."
-                })
-            });
-            const data = await res.json();
-            setMessages([{ sender: 'bot', text: data.reply }]);
-        } catch (err) {
-            console.error("Error fetching intro: ", err);
-            setMessages([{ sender: 'bot', text: "Error: failed to load intro message." }]);
-        } finally {
-            setLoading(false);
-        }
-    };
-    
-    setMessages([]);
-    sendIntroMessage();
+    const englishIntro = 
+      "Hi! I’m your friendly financial assistant for Indonesian youths. " +
+      "You can share your financial mistakes, spending habits, or money challenges with me. " +
+      "I’ll give practical, non-judgmental advice and help you build better financial habits. " +
+      "Let’s start your confession!";
+  
+    const indonesianIntro = 
+      "Hai! Saya asisten keuangan Anda yang ramah untuk anak muda Indonesia. " + 
+      "Anda bisa berbagi kesalahan keuangan, kebiasaan belanja, atau tantangan keuangan Anda dengan saya. " + 
+      "Saya akan memberikan saran praktis tanpa menghakimi dan membantu Anda membangun kebiasaan keuangan yang lebih baik. " + 
+      "Mari kita mulai pengakuan Anda!";
+  
+    // Reset chat and show the intro
+    setMessages([{ sender: 'bot', text: currentLanguage === 'en' ? englishIntro : indonesianIntro }]);
   }, [currentLanguage]);
 
   const navigate = useNavigate();
@@ -100,7 +89,7 @@ const Chatbot: React.FC = () => {
   return (
     <div style={{ maxWidth: "500px", margin: "2rem auto", fontFamily: "Arial, sans-serif" }}>
       <h2 style={{ textAlign: "center" }}>
-        {currentLanguage === "en" ? "Financial Assistant Chatbot" : "Chatbot Asisten Keuangan"}
+        {currentLanguage === "en" ? "Confessions Bot" : "Bot Pengakuan"}
       </h2>
 
 
@@ -232,7 +221,7 @@ const Chatbot: React.FC = () => {
             padding: "0.5rem 1rem",
             borderRadius: "20px",
             border: "none",
-            backgroundColor: "#16a34a",
+            backgroundColor: "#4f46e5",
             color: "white",
             cursor: "pointer",
           }}
@@ -247,4 +236,4 @@ const Chatbot: React.FC = () => {
   );
 };
 
-export default Chatbot;
+export default Confessions;
