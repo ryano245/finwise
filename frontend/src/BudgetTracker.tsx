@@ -198,7 +198,43 @@ const BudgetTracker: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'goal'|'setup'|'dashboard'|'plan'>('goal');
 
   const canGeneratePlan = expenses.length >= 5;
-  const onGenerate = () => { alert('Generate plan clicked — integrate LLM or planner here.'); };
+  // inside BudgetTracker component
+  const onGenerate = async (): Promise<string> => {
+    if (!currentBudget) {
+        alert('No budget data available');
+        return '';
+    }
+
+    try {
+        const res = await fetch('/api/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ budget: currentBudget, expenses, goals })
+        });
+
+        if (!res.ok) {
+        const errBody = await res.text().catch(() => '');
+        console.error('Generate-plan failed', res.status, errBody);
+        alert('Failed to generate plan (server error)' + errBody);
+        return '';
+        }
+
+        const data = await res.json();
+        const planText = data.plan ?? data.message ?? '';
+        if (!planText) {
+        alert('No plan returned from the server');
+        return '';
+        }
+
+        return String(planText);
+    } catch (err) {
+        console.error('Error generating plan:', err);
+        alert('Error generating plan');
+        return '';
+    }
+    };
+
+
 
   return (
     <div className="app">
@@ -240,30 +276,39 @@ const BudgetTracker: React.FC = () => {
         {activeTab === 'setup' && (
           <>
             <MonthlyBudgetSetup
-              strings={strings}
-              styles={styles}
-              currentBudget={currentBudget}
-              totalBudget={totalBudget}
-              setTotalBudget={(n) => { setTotalBudget(n); if (!currentBudget && n > 0) { const currentMonth = getCurrentMonth(); const newBudget: Budget = { id: `budget-${currentMonth}`, month: currentMonth, totalBudget: n, categories: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; setCurrentBudget(newBudget); } }}
-              remainingToAllocate={remainingToAllocate}
-              newCategoryName={newCategoryName}
-              setNewCategoryName={setNewCategoryName}
-              newCategoryAmount={newCategoryAmount}
-              setNewCategoryAmount={setNewCategoryAmount}
-              newCategoryDate={newCategoryDate}
-              setNewCategoryDate={setNewCategoryDate}
-              newCategoryDescription={newCategoryDescription}
-              setNewCategoryDescription={setNewCategoryDescription}
-              addCategory={addCategory}
-              saveBudget={saveBudget}
-              startEditCategory={startEditCategory}
-              editingCategoryId={editingCategoryId}
-              categoryDraft={categoryDraft}
-              setCategoryDraft={setCategoryDraft}
-              saveEditedCategory={saveEditedCategory}
-              cancelEditCategory={cancelEditCategory}
-              deleteCategory={deleteCategory}
-            />
+                          strings={strings}
+                          styles={styles}
+                          currentBudget={currentBudget}
+                          totalBudget={totalBudget}
+                          setTotalBudget={(n) => { setTotalBudget(n); if (!currentBudget && n > 0) { const currentMonth = getCurrentMonth(); const newBudget: Budget = { id: `budget-${currentMonth}`, month: currentMonth, totalBudget: n, categories: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; setCurrentBudget(newBudget); } } }
+                          remainingToAllocate={remainingToAllocate}
+                          newCategoryName={newCategoryName}
+                          setNewCategoryName={setNewCategoryName}
+                          newCategoryAmount={newCategoryAmount}
+                          setNewCategoryAmount={setNewCategoryAmount}
+                          newCategoryDate={newCategoryDate}
+                          setNewCategoryDate={setNewCategoryDate}
+                          newCategoryDescription={newCategoryDescription}
+                          setNewCategoryDescription={setNewCategoryDescription}
+                          addCategory={addCategory}
+                          saveBudget={saveBudget}
+                          startEditCategory={startEditCategory}
+                          editingCategoryId={editingCategoryId}
+                          categoryDraft={categoryDraft}
+                          setCategoryDraft={setCategoryDraft}
+                          saveEditedCategory={saveEditedCategory}
+                          cancelEditCategory={cancelEditCategory}
+                          deleteCategory={deleteCategory} expenseAmount={0} setExpenseAmount={function (n: number): void {
+                              throw new Error('Function not implemented.');
+                          } } expenseCategory={''} setExpenseCategory={function (s: string): void {
+                              throw new Error('Function not implemented.');
+                          } } expenseDate={''} setExpenseDate={function (s: string): void {
+                              throw new Error('Function not implemented.');
+                          } } expenseDescription={''} setExpenseDescription={function (s: string): void {
+                              throw new Error('Function not implemented.');
+                          } } addExpense={function (e?: React.FormEvent): void {
+                              throw new Error('Function not implemented.');
+                          } }            />
 
             {/* Expense entry shown under setup to keep tabs minimal */}
             {currentBudget && (
