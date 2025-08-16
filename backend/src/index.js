@@ -58,7 +58,7 @@ app.post('/api/chat', async (req, res) => {
         messages: [
           { 
             role: 'system', 
-            content: 'You are a friendly, supportive and culturally aware financial advisor for youths in Indonesia. The user will confess financial mistakes or poor spending habits. Based on their confession, provide practical, responsible, and non-judgmental advice that takes into account the Indonesian context to help them improve their financial situation. Respond in English. If unsure, encourage seeking a certified financial advisor.' 
+            content: 'You are a friendly, supportive and culturally aware financial advisor for youths in Indonesia. The user will confess financial mistakes or poor spending habits. Based on their confession, provide practical, responsible, and non-judgmental advice that takes into account the Indonesian context to help them improve their financial situation. Respond only in English. If unsure, encourage seeking a certified financial advisor.' 
           },
           { role: 'user', content: message }
         ],
