@@ -6,7 +6,15 @@ const Chatbot: React.FC = () => {
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'id'>(() => {
+    const saved = localStorage.getItem('chatbot-lang');
+    return (saved === 'id' || saved === 'en') ? saved : 'en';
+  });
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { 
+    localStorage.setItem('chatbot-lang', currentLanguage); 
+  }, [currentLanguage]);
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -15,19 +23,31 @@ const Chatbot: React.FC = () => {
 
   useEffect(() => {
     const sendIntroMessage = async () => {
-      const res = await fetch("http://localhost:5001/api/chat", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: "Introduce yourself to the user and explain what you can help with. Speak only in English."
-        })
-      });
-      const data = await res.json();
-      setMessages([{ sender: 'bot', text: data.reply }]);
+        setLoading(true);
+        try {
+            const res = await fetch("http://localhost:5001/api/chat", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: 
+                        currentLanguage === "en"
+                            ? "Introduce yourself to the user and explain what you can help with. Speak only in English."
+                            : "Introduce yourself to the user and explain what you can help with. Speak only in Indonesian."
+                })
+            });
+            const data = await res.json();
+            setMessages([{ sender: 'bot', text: data.reply }]);
+        } catch (err) {
+            console.error("Error fetching intro: ", err);
+            setMessages([{ sender: 'bot', text: "Error: failed to load intro message." }]);
+        } finally {
+            setLoading(false);
+        }
     };
-  
+    
+    setMessages([]);
     sendIntroMessage();
-  }, []);
+  }, [currentLanguage]);
 
   const navigate = useNavigate();
 
@@ -45,7 +65,12 @@ const Chatbot: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: userMessage.text }),
+        body: JSON.stringify({ 
+            message: 
+                currentLanguage === "en"
+                    ? `Respond only in English: ${userMessage.text}`
+                    : `Respond only in Indonesian: ${userMessage.text}`
+        }),
       });
 
       const data = await response.json();
@@ -74,7 +99,39 @@ const Chatbot: React.FC = () => {
 
   return (
     <div style={{ maxWidth: "500px", margin: "2rem auto", fontFamily: "Arial, sans-serif" }}>
-      <h2 style={{ textAlign: "center" }}>Financial Assistant Chatbot</h2>
+      <h2 style={{ textAlign: "center" }}>
+        {currentLanguage === "en" ? "Financial Assistant Chatbot" : "Chatbot Asisten Keuangan"}
+      </h2>
+
+
+      {/* Language Switcher */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+        <button
+          onClick={() => setCurrentLanguage("en")}
+          style={{
+            marginRight: 8,
+            padding: "4px 10px",
+            borderRadius: 6,
+            border: currentLanguage === "en" ? "2px solid #4f46e5" : "1px solid #ccc",
+            backgroundColor: currentLanguage === "en" ? "#e0e7ff" : "white",
+            cursor: "pointer",
+          }}
+        >
+          EN
+        </button>
+        <button
+          onClick={() => setCurrentLanguage("id")}
+          style={{
+            padding: "4px 10px",
+            borderRadius: 6,
+            border: currentLanguage === "id" ? "2px solid #4f46e5" : "1px solid #ccc",
+            backgroundColor: currentLanguage === "id" ? "#e0e7ff" : "white",
+            cursor: "pointer",
+          }}
+        >
+          ID
+        </button>
+      </div>
       
       {/* Chat Window */}
       <div
@@ -88,6 +145,14 @@ const Chatbot: React.FC = () => {
           backgroundColor: "#f9f9f9",
         }}
       >
+        {loading && messages.length === 0 && (
+            <div style={{ color: "#666", fontStyle: "italic" }}>
+                {currentLanguage === "en"
+                    ? "Bot is preparing a response..."
+                    : "Bot sedang menyiapkan jawaban..."}
+            </div>
+        )}
+
         {messages.map((msg, index) => (
           <div
             key={index}
@@ -115,7 +180,11 @@ const Chatbot: React.FC = () => {
             </div>
           </div>
         ))}
-        {loading && <div>Bot is typing...</div>}
+        {loading && messages.length > 0 && (
+            <div style={{ color: "#666", fontStyle: "italic" }}>
+                {currentLanguage === "en" ? "Bot is typing..." : "Bot sedang mengetik..."}
+            </div>
+        )}
         <div ref={chatEndRef}></div>
       </div>
 
@@ -126,7 +195,9 @@ const Chatbot: React.FC = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyPress}
-          placeholder="Type your message..."
+          placeholder={
+            currentLanguage === "en" ? "Type your message..." : "Ketik pesan Anda..."
+        }
           style={{
             flex: 1,
             padding: "0.5rem",
@@ -147,7 +218,7 @@ const Chatbot: React.FC = () => {
             cursor: "pointer",
           }}
         >
-          Send
+          {currentLanguage === "en" ? "Send" : "Kirim"}
         </button>
       </div>
 
@@ -166,7 +237,10 @@ const Chatbot: React.FC = () => {
             cursor: "pointer",
           }}
         >
-          Post Conversation Anonymously
+          {currentLanguage === "en" 
+            ? "Post Conversation Anonymously"
+            : "Posting Percakapan Secara Anonim"
+          }
         </button>
       )}
     </div>
