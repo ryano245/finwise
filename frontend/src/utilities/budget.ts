@@ -1,4 +1,5 @@
 export interface LanguageStrings {
+  planGenerationError: string;
   appTitle: string;
 
   // goal context
@@ -87,6 +88,7 @@ export interface LanguageStrings {
 }
 
 export const englishStrings: LanguageStrings = {
+  planGenerationError: "Failed to generate plan.",
   appTitle: "Finwise - Budget Tracker",
 
   goalSectionTitle: "Goals",
@@ -173,6 +175,7 @@ export const englishStrings: LanguageStrings = {
 };
 
 export const indonesianStrings: LanguageStrings = {
+  planGenerationError: "Gagal membuat rencana.",
   appTitle: "Finwise - Budget Tracker",
 
   goalSectionTitle: "Tujuan Anda",

@@ -198,41 +198,71 @@ const BudgetTracker: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'goal'|'setup'|'dashboard'|'plan'>('goal');
 
   const canGeneratePlan = expenses.length >= 5;
-  // inside BudgetTracker component
-  const onGenerate = async (): Promise<string> => {
-    if (!currentBudget) {
-        alert('No budget data available');
-        return '';
-    }
 
-    try {
-        const res = await fetch('/api/generate-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ budget: currentBudget, expenses, goals })
-        });
-
-        if (!res.ok) {
-        const errBody = await res.text().catch(() => '');
-        console.error('Generate-plan failed', res.status, errBody);
-        alert('Failed to generate plan (server error)' + errBody);
-        return '';
+  const onGenerate = async (extraNotes?: string): Promise<string> => {
+        if (!currentBudget) {
+            console.warn('onGenerate: No currentBudget available');
+            alert('No budget data available');
+            return '';
         }
 
-        const data = await res.json();
-        const planText = data.plan ?? data.message ?? '';
-        if (!planText) {
-        alert('No plan returned from the server');
-        return '';
-        }
+        try {
+            // Flag expired goals without modifying originals
+            const today = new Date();
+            const flaggedGoals = goals.map((goal: Goal & { expired?: boolean }) => ({
+                ...goal,
+                expired: goal.targetDate ? new Date(goal.targetDate) >= today : false
+            }));
 
-        return String(planText);
-    } catch (err) {
-        console.error('Error generating plan:', err);
-        alert('Error generating plan');
-        return '';
-    }
+            const requestBody = { 
+                budget: currentBudget, 
+                expenses, 
+                goals: flaggedGoals, 
+                language: currentLanguage, 
+                extraNotes: extraNotes?.trim() || "None" 
+            };
+            console.log('Sending generate-plan request:', requestBody);
+
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/generate-plan`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody),
+            });
+
+            const textBody = await res.text();
+            console.log('Raw response body:', textBody);
+
+            if (!res.ok) {
+                console.error('Generate-plan failed:', res.status, textBody);
+                alert('Failed to generate plan (server error)');
+                return '';
+            }
+
+            let data: { plan?: string; message?: string };
+            try {
+                data = JSON.parse(textBody);
+            } catch (parseErr) {
+                console.error('Failed to parse JSON response:', parseErr, 'Body:', textBody);
+                alert('Error parsing plan response');
+                return '';
+            }
+
+            const planText = data.plan ?? data.message ?? '';
+            console.log('Plan text received:', planText);
+
+            if (!planText) {
+                alert('No plan returned from the server');
+                return '';
+            }
+
+            return planText;
+        } catch (err) {
+            console.error('Error generating plan:', err);
+            alert('Error generating plan');
+            return '';
+        }
     };
+
 
 
 
@@ -334,14 +364,29 @@ const BudgetTracker: React.FC = () => {
         )}
 
         {activeTab === 'plan' && (
-          <GeneratePlan strings={strings} canGeneratePlan={canGeneratePlan} onGenerate={onGenerate} expensesCount={expenses.length} />
-        )}
+        <>
+            <GeneratePlan
+            strings={strings}
+            canGeneratePlan={canGeneratePlan}
+            onGenerate={async () => {
+                // Include extra notes in the request
+                return await onGenerate(extraNotes);
+            }}
+            expensesCount={expenses.length}
+            />
 
-        {/* Extra notes always available */}
-        <section className="stack" style={{ marginTop: 16 }}>
-          <h3>{strings.extraNotesTitle}</h3>
-          <textarea placeholder={strings.extraNotesPlaceholder} value={extraNotes} onChange={(e) => setExtraNotes(e.target.value)} rows={3} />
-        </section>
+            {/* Extra notes only visible in Generate Plan tab */}
+            <section className="stack" style={{ marginTop: 16 }}>
+            <h3>{strings.extraNotesTitle}</h3>
+            <textarea
+                placeholder={strings.extraNotesPlaceholder}
+                value={extraNotes}
+                onChange={(e) => setExtraNotes(e.target.value)}
+                rows={3}
+            />
+            </section>
+        </>
+        )}
       </main>
     </div>
   );
