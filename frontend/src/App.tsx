@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link} from 'react-router-dom';
-import BudgetTracker from './BudgetTracker';
+import BudgetTracker from './BudgetTracker'
 import Chatbot from './Chatbot';
 import Post from './Post';
 import Forum from './Forum';

@@ -4,22 +4,29 @@ import type { LanguageStrings } from '../utilities/budget';
 type Props = {
   strings: LanguageStrings;
   canGeneratePlan: boolean;
-  onGenerate: () => Promise<string>; // updated to async returning the plan text
+  onGenerate: () => Promise<string>;
   expensesCount: number;
 };
 
 export default function GeneratePlan({ strings, canGeneratePlan, onGenerate, expensesCount }: Props) {
   const [planText, setPlanText] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
+    setError(null);
     setLoading(true);
+    setPlanText('');
     try {
       const plan = await onGenerate();
-      setPlanText(plan);
+      if (!plan) {
+        setError(strings.planGenerationError ?? 'Failed to generate plan.');
+      } else {
+        setPlanText(plan);
+      }
     } catch (err) {
-      console.error(err);
-      setPlanText(strings.planGenerationError || 'Error generating plan');
+      console.error('GeneratePlan handle error', err);
+      setError(strings.planGenerationError ?? 'Failed to generate plan.');
     } finally {
       setLoading(false);
     }
@@ -33,21 +40,25 @@ export default function GeneratePlan({ strings, canGeneratePlan, onGenerate, exp
         </div>
       )}
 
-      <button
-        onClick={handleGenerate}
-        disabled={!canGeneratePlan || loading}
-        aria-describedby={!canGeneratePlan ? 'genplan-requirements' : undefined}
-      >
-        {loading ? strings.generatingPlan || 'Generating...' : strings.generatePlan}
-      </button>
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          onClick={handleGenerate}
+          disabled={!canGeneratePlan || loading}
+          aria-describedby={!canGeneratePlan ? 'genplan-requirements' : undefined}
+        >
+          {loading ? (strings.loading ?? 'Generating...') : strings.generatePlan}
+        </button>
+      </div>
+
+      {error && <div className="hint" style={{ color: 'crimson', marginTop: 8 }}>{error}</div>}
 
       {planText && (
         <textarea
           readOnly
           value={planText}
-          rows={10}
-          style={{ width: '100%', marginTop: 16, resize: 'vertical' }}
-          placeholder={strings.planOutputPlaceholder || 'Your generated plan will appear here.'}
+          rows={12}
+          style={{ width: '100%', marginTop: 12, resize: 'vertical' }}
+          placeholder={strings.planOutputPlaceholder ?? 'Your generated plan will appear here.'}
         />
       )}
     </section>
