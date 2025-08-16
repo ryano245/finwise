@@ -18,7 +18,6 @@ type Props = {
   newCategoryDescription: string;
   setNewCategoryDescription: (s: string) => void;
   addCategory: () => void;
-  saveBudget: () => void;
   startEditCategory: (cat: CategoryBudget) => void;
   editingCategoryId: string | null;
   categoryDraft: Partial<CategoryBudget>;
@@ -43,7 +42,7 @@ export default function MonthlyBudgetSetup(props: Props) {
   const {
     strings, styles, currentBudget, totalBudget, setTotalBudget, remainingToAllocate,
     newCategoryName, setNewCategoryName, newCategoryAmount, setNewCategoryAmount, newCategoryDate, setNewCategoryDate,
-    newCategoryDescription, setNewCategoryDescription, addCategory, saveBudget,
+    newCategoryDescription, setNewCategoryDescription, addCategory,
     startEditCategory, editingCategoryId, categoryDraft, setCategoryDraft, saveEditedCategory, cancelEditCategory, deleteCategory,
     expenseAmount, setExpenseAmount, expenseCategory, setExpenseCategory, expenseDate, setExpenseDate, expenseDescription, setExpenseDescription, addExpense
   } = props;
@@ -131,10 +130,6 @@ export default function MonthlyBudgetSetup(props: Props) {
                   )}
                 </div>
               ))}
-
-              <div className="save-row" style={{ marginTop: 12 }}>
-                <button onClick={saveBudget} className="save-budget">{strings.saveBudget}</button>
-              </div>
             </div>
           )}
         </div>

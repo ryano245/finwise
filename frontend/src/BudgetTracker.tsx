@@ -133,8 +133,16 @@ const BudgetTracker: React.FC = () => {
     if (exists) { alert(strings.dupCategoryWarning); return; }
     if (newCategoryAmount > remainingToAllocate) { alert(`Cannot allocate more than remaining: ${formatCurrency(remainingToAllocate)}`); return; }
     const newCat: CategoryBudget = { id: `cat-${Date.now()}`, name, amount: newCategoryAmount, date: newCategoryDate, description: newCategoryDescription.trim() };
-    setCurrentBudget({ ...currentBudget, categories: [...currentBudget.categories, newCat] });
+    const updatedBudget: Budget = {
+        ...currentBudget,
+        categories: [...currentBudget.categories, newCat],
+        totalBudget,
+        updatedAt: new Date().toISOString(),
+    };
+    setCurrentBudget(updatedBudget);
+    localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(updatedBudget));
     setNewCategoryName(''); setNewCategoryAmount(0); setNewCategoryDate(''); setNewCategoryDescription('');
+    alert(strings.budgetSaved);
   };
 
   const startEditCategory = (cat: CategoryBudget) => { setEditingCategoryId(cat.id); setCategoryDraft({ ...cat }); };
@@ -156,8 +164,6 @@ const BudgetTracker: React.FC = () => {
   };
 
   const deleteCategory = (id: string) => { if (!currentBudget) return; if (editingCategoryId === id) cancelEditCategory(); setCurrentBudget({ ...currentBudget, categories: currentBudget.categories.filter(c => c.id !== id) }); };
-
-  const saveBudget = () => { if (!currentBudget) return; const nowIso = new Date().toISOString(); const data: Budget = { ...currentBudget, totalBudget, updatedAt: nowIso }; localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(data)); setCurrentBudget(data); alert(strings.budgetSaved); };
 
   const addExpense = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -291,7 +297,6 @@ const BudgetTracker: React.FC = () => {
                           newCategoryDescription={newCategoryDescription}
                           setNewCategoryDescription={setNewCategoryDescription}
                           addCategory={addCategory}
-                          saveBudget={saveBudget}
                           startEditCategory={startEditCategory}
                           editingCategoryId={editingCategoryId}
                           categoryDraft={categoryDraft}
