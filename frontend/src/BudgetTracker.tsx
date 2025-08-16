@@ -580,23 +580,17 @@ function App() {
         </div>
       </header>
       
-      <div className="stack">
-            <div className="stack">
-              <label htmlFor="incomeAllowance">{strings.totalMonthlyBudget}</label>
-              <div className="row">
-                <input
-                  id="incomeAllowance"
-                  type="number"
-                  value={incomeAllowance === 0 ? '' : incomeAllowance}
-                  onChange={(e) => setIncomeAllowance(e.target.value === '' ? 0 : Number(e.target.value))}
-                  placeholder={strings.budgetAmountPlaceholder}
-                  required
-                  min={0}
-                />
-                <div className="hint">{`Remaining to allocate: ${formatCurrency(Math.max(0, remainingToAllocate))}`}</div>
-              </div>
-            </div>
-        </div>
+      {/* Income / Allowance (Optional) */}
+      <div>
+        <label htmlFor="incomeAllowance">Income / Allowance </label>
+        <input
+          id="incomeAllowance"
+          type="number"
+          placeholder="e.g. 2000"
+          value={incomeAllowance}
+          onChange={(e) => setIncomeAllowance(e.target.value === '' ? 0 : Number(e.target.value))}
+        />
+      </div>
 
       <main className="container">
         {/* Budget Setup */}
