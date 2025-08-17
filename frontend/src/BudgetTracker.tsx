@@ -56,6 +56,20 @@ const BudgetTracker: React.FC = () => {
   const [totalBudget, setTotalBudget] = useState<number>(0);
   const [incomeAllowance, setIncomeAllowance] = useState<number>(0);
 
+  useEffect(() => {
+  if (currentBudget) {
+    const updatedBudget: Budget = {
+      ...currentBudget,
+      incomeAllowance,
+      totalBudget, // optional: include this if you want both always synced
+      updatedAt: new Date().toISOString(),
+    };
+    setCurrentBudget(updatedBudget);
+    localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(updatedBudget));
+  }
+}, [incomeAllowance, totalBudget, currentBudget]);
+
+
   const [goals, setGoals] = useState<Goal[]>(() => {
     const raw = localStorage.getItem('goals_v1');
     if (raw) {

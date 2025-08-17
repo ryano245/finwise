@@ -60,15 +60,23 @@ The budget tracker is divided into four main tabs:
 ---
 
 ## Future Plans
-
-### Security & Privacy
-
 - **Encrypt sensitive financial data** (e.g., income, savings, allowance).
 - **Login system with username & password** to securely link data to each user’s account.
+- **Contextual AI Training:** Improve the AI model to provide advice and plan suggestions that are more relevant to the current Indonesian financial context for youths via prompt engineering.
+- **UI/UX Improvements:** Refine the app interface to make it more user-friendly, intuitive, and enjoyable to navigate. Optimise for dark mode. 
+- **Monthly Budget Tracking capabilities** Organise finances across time and have expense automatically sorted into correct monthly budget dashboard.
+- **Enhanced Forum Features** – Enable users to like and comment on posts, participate under anonymous aliases, and delete their own posts for greater control and privacy.
+- **Advanced Analytics Dashboard** – Provide interactive charts and insights that track spending patterns, user behavior, and progress over time, helping users make informed financial decisions.
+- **Export Data**: Allow users to download their AI generated plan (Word or PDF).
+- **Firebase Integration:** Once user authentication is implemented, store all user data in Firebase instead of local storage for better security and accessibility across devices.
 
 ### Possible Enhancements
-
-- **Contextual AI Training:** Improve the AI model to provide advice and plan suggestions that are more relevant to the current Indonesian financial context for youths.
+- **Mobile App (iOS & Android):** Expand accessibility beyond desktop/web.
 - **Enhanced Plan Reports:** Upgrade the generate-plan output from plain text to a more structured report with diagrams, charts, and visuals for easier understanding.
 - **Performance Optimization:** Optimize the app’s performance, especially the AI processing, to improve load times and scalability as more users engage simultaneously.
-- **UI/UX Improvements:** Refine the app interface to make it more user-friendly, intuitive, and enjoyable to navigate.
+- **Gamification Elements** – Introduce a points and streak system to motivate users to consistently follow their budget and engage with the platform.
+
+
+
+
+

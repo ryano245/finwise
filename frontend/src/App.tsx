@@ -30,6 +30,8 @@ const App: React.FC = () => {
                   <button>Confessions</button>
                 </Link>
               </div>
+              <br/>
+              <div>Please use light mode. Updates coming soon!</div>
             </div>
           } />
           <Route path="/budget" element={<BudgetTracker />} />

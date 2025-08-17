@@ -23,16 +23,16 @@ const Confessions: React.FC = () => {
 
   useEffect(() => {
     const englishIntro = 
-      "Hi! I’m your friendly financial assistant for Indonesian youths. " +
+      "Hi! I’m your friendly financial assistant. " +
       "You can share your financial mistakes, spending habits, or money challenges with me. " +
       "I’ll give practical, non-judgmental advice and help you build better financial habits. " +
-      "Let’s start your confession!";
+      "Is there anything you want to share with me?";
   
     const indonesianIntro = 
-      "Hai! Saya asisten keuangan Anda yang ramah untuk anak muda Indonesia. " + 
+      "Hai! Saya asisten keuangan Anda yang ramah. " + 
       "Anda bisa berbagi kesalahan keuangan, kebiasaan belanja, atau tantangan keuangan Anda dengan saya. " + 
       "Saya akan memberikan saran praktis tanpa menghakimi dan membantu Anda membangun kebiasaan keuangan yang lebih baik. " + 
-      "Mari kita mulai pengakuan Anda!";
+      "Ada yang ingin Anda bagikan dengan saya?";
   
     // Reset chat and show the intro
     setMessages([{ sender: 'bot', text: currentLanguage === 'en' ? englishIntro : indonesianIntro }]);
