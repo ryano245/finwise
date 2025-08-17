@@ -29,13 +29,6 @@ const BudgetTracker: React.FC = () => {
 
   // All state (lifted)
   const [currentBudget, setCurrentBudget] = useState<Budget | null>(null);
-  // Persist any change to the current budget
-  useEffect(() => {
-    if (!currentBudget) return;
-    const toSave = { ...currentBudget, updatedAt: new Date().toISOString() };
-    localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(toSave));
-  }, [currentBudget]);
-
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const [newCategoryName, setNewCategoryName] = useState('');
