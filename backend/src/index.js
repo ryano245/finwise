@@ -118,6 +118,73 @@ app.get('/api/forum', (req, res) => {
   res.json(anonPosts);
 });
 
+app.post('/api/generate-plan', async (req, res) => {
+  try {
+    const { budget, expenses, goals, language, extraNotes } = req.body;
+    if (!budget || !expenses || !goals) {
+      return res.status(400).json({ error: 'Budget, expenses, and goals are required' });
+    }
+
+    // Sanitize extra notes (fallback to "None" if blank)
+    const notes = extraNotes?.trim() || "None";
+
+    // Flag expired goals without modifying the original data
+    const todayDate = new Date();
+    const flaggedGoals = goals.map(goal => ({
+      ...goal,
+      expired: new Date(goal.endDate) < todayDate,
+    }));
+
+    // Add current date for prompt
+    const todayStr = todayDate.toLocaleDateString('en-GB', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+
+    // System prompt based on language
+    const systemPrompt =
+      language === 'id'
+        ? `Answer only in Bahasa Indonesia. You are a budget/saving plan report generator. Based on the user's budget, expenses, goals, and additional notes, provide a practical plan with step-by-step feedback. Today is ${todayStr}.
+Flag any goals whose deadlines have already passed with 'expired'. State Clearly at the start whether the goal's deadline has expired. If goals are not yet past but seem unrealistic, propose a more reasonable deadline. Answer only in Bahasa Indonesia. Do not ask a question at the end you are generating a report.`
+        : `Answer only in English. You are a budget/saving plan report generator. Based on the user's budget, expenses, goals, and additional notes, provide a practical plan with step-by-step feedback. Today is ${todayStr}.
+Flag any goals whose deadlines have already passed with 'expired'. State Clearly at the start whether the goal's deadline has expired. If goals are not yet past but seem unrealistic, propose a more reasonable deadline. Answer only in English. Do not ask a question at the end you are generating a report.`;
+
+    const response = await axios.post(
+      'https://api.sea-lion.ai/v1/chat/completions',
+      {
+        model: 'aisingapore/Llama-SEA-LION-v3.5-8B-R',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: JSON.stringify({ budget, expenses, goals: flaggedGoals, extraNotes: notes }) }
+        ],
+        chat_template_kwargs: { thinking_mode: 'off' },
+        cache: { 'no-cache': true }
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.SEA_LION_API_KEY_BUDGET}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('SEA-LION API response:', response.data);
+    res.json({ plan: response.data.choices[0]?.message?.content ?? 'No content returned' });
+
+  } catch (error) {
+    console.error('Full SEA-LION API error:', {
+      message: error.message,
+      responseData: error.response?.data,
+      status: error.response?.status,
+      headers: error.response?.headers,
+      request: error.request,
+    });
+    res.status(500).json({ plan: "Sorry, we couldn't generate a plan at the moment. Please try again later." });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📱 Visit: http://localhost:${PORT}`);

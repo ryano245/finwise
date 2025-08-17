@@ -1,6 +1,8 @@
 /** =======================
  *         Types
  *  ======================= */
+
+/** ===== Budgeting ===== */
 export interface CategoryBudget {
   id: string;
   name: string;
@@ -11,7 +13,7 @@ export interface CategoryBudget {
 
 export interface Budget {
   id?: string;
-  month: string;              // YYYY-MM
+  month: string; // Not in use
   incomeAllowance: number;
   totalBudget: number;
   categories: CategoryBudget[];
@@ -37,7 +39,7 @@ export interface CategorySummary {
   percentBar: number;
 }
 
-/** Structured goal so we can support multiple goals */
+/** ===== Goals ===== */
 export interface Goal {
   id: string;
   wish: string;
@@ -51,6 +53,6 @@ export interface Goal {
   currentSavings: number;
   priority: 'high' | 'medium' | 'low';
   riskProfile: 'conservative' | 'balanced' | 'aggressive';
-  nonNegotiables: string[];
+  nonNegotiables: string[]; // Not in use
   motivation: string;
 }

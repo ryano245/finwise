@@ -15,7 +15,7 @@ const Forum: React.FC = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/chat`);
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/forum`);
         const data = await res.json();
         setPosts(data);
       } catch (err) {
@@ -32,9 +32,9 @@ const Forum: React.FC = () => {
 
   return (
     <div style={{ maxWidth: "700px", margin: "2rem auto", fontFamily: "Arial, sans-serif" }}>
-      <h2 style={{ textAlign: "center" }}>Anonymous Forum</h2>
+      <h2 style={{ textAlign: "center" }}>Anonymous Forum / Forum Anonim</h2>
 
-      {posts.length === 0 && <p>No posts yet.</p>}
+      {posts.length === 0 && <p>No posts yet. / Belum ada postinga.</p>}
 
       {posts.map((post) => (
         <div

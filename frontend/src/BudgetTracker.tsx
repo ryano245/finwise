@@ -48,11 +48,8 @@ const BudgetTracker: React.FC = () => {
   const [expenseDraft, setExpenseDraft] = useState<Partial<Expense>>({});
 
   const [totalBudget, setTotalBudget] = useState<number>(0);
-
-  /** Income/Allowance field */
   const [incomeAllowance, setIncomeAllowance] = useState<number>(0);
 
-  /** ===== Goals (multi) ===== */
   const [goals, setGoals] = useState<Goal[]>(() => {
     const raw = localStorage.getItem('goals_v1');
     if (raw) {
@@ -103,19 +100,10 @@ const BudgetTracker: React.FC = () => {
         } else if (raw.categories && typeof raw.categories === 'object') {
           categories = Object.entries(raw.categories).map(([name, amount], i) => ({ id: `cat-${i}-${name}`, name, amount: Number(amount), date: `${currentMonth}-01`, description: '' }));
         }
-        const budget: Budget = {
-          id: raw.id ?? `budget-${currentMonth}`,
-          month: raw.month ?? currentMonth,
-          incomeAllowance: Number(raw.incomeAllowance ?? 0),
-          totalBudget: Number(raw.totalBudget ?? 0),
-          categories,
-          createdAt: raw.createdAt ?? new Date().toISOString(),
-          updatedAt: raw.updatedAt ?? new Date().toISOString()
-        };
+        const budget: Budget = { id: raw.id ?? `budget-${currentMonth}`, month: raw.month ?? currentMonth, incomeAllowance: Number(raw.incomeAllowance ?? 0), totalBudget: Number(raw.totalBudget ?? 0), categories, createdAt: raw.createdAt ?? new Date().toISOString(), updatedAt: raw.updatedAt ?? new Date().toISOString() };
         setCurrentBudget(budget);
-        setIncomeAllowance(budget.incomeAllowance);
         setTotalBudget(budget.totalBudget);
-      
+        setIncomeAllowance(budget.incomeAllowance)
       }
 
       const storedExpenses = localStorage.getItem(`expenses-${currentMonth}`);
@@ -147,8 +135,16 @@ const BudgetTracker: React.FC = () => {
     if (exists) { alert(strings.dupCategoryWarning); return; }
     if (newCategoryAmount > remainingToAllocate) { alert(`Cannot allocate more than remaining: ${formatCurrency(remainingToAllocate)}`); return; }
     const newCat: CategoryBudget = { id: `cat-${Date.now()}`, name, amount: newCategoryAmount, date: newCategoryDate, description: newCategoryDescription.trim() };
-    setCurrentBudget({ ...currentBudget, categories: [...currentBudget.categories, newCat] });
+    const updatedBudget: Budget = {
+        ...currentBudget,
+        categories: [...currentBudget.categories, newCat],
+        totalBudget,
+        updatedAt: new Date().toISOString(),
+    };
+    setCurrentBudget(updatedBudget);
+    localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(updatedBudget));
     setNewCategoryName(''); setNewCategoryAmount(0); setNewCategoryDate(''); setNewCategoryDescription('');
+    alert(strings.budgetSaved);
   };
 
   const startEditCategory = (cat: CategoryBudget) => { setEditingCategoryId(cat.id); setCategoryDraft({ ...cat }); };
@@ -170,8 +166,6 @@ const BudgetTracker: React.FC = () => {
   };
 
   const deleteCategory = (id: string) => { if (!currentBudget) return; if (editingCategoryId === id) cancelEditCategory(); setCurrentBudget({ ...currentBudget, categories: currentBudget.categories.filter(c => c.id !== id) }); };
-
-  const saveBudget = () => { if (!currentBudget) return; const nowIso = new Date().toISOString(); const data: Budget = { ...currentBudget, totalBudget, updatedAt: nowIso }; localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(data)); setCurrentBudget(data); alert(strings.budgetSaved); };
 
   const addExpense = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -212,7 +206,70 @@ const BudgetTracker: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'goal'|'setup'|'dashboard'|'plan'>('goal');
 
   const canGeneratePlan = expenses.length >= 5;
-  const onGenerate = () => { alert('Generate plan clicked — integrate LLM or planner here.'); };
+
+  const onGenerate = async (extraNotes?: string): Promise<string> => {
+        if (!currentBudget) {
+            console.warn('onGenerate: No currentBudget available');
+            alert('No budget data available');
+            return '';
+        }
+
+        try {
+            // Flag expired goals without modifying originals
+            const today = new Date();
+            const flaggedGoals = goals.map((goal: Goal & { expired?: boolean }) => ({
+                ...goal,
+                expired: goal.targetDate ? new Date(goal.targetDate) >= today : false
+            }));
+
+            const requestBody = { 
+                budget: currentBudget, 
+                expenses, 
+                goals: flaggedGoals, 
+                language: currentLanguage, 
+                extraNotes: extraNotes?.trim() || "None" 
+            };
+            console.log('Sending generate-plan request:', requestBody);
+
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/generate-plan`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody),
+            });
+
+            const textBody = await res.text();
+            console.log('Raw response body:', textBody);
+
+            if (!res.ok) {
+                console.error('Generate-plan failed:', res.status, textBody);
+                alert('Failed to generate plan (server error)');
+                return '';
+            }
+
+            let data: { plan?: string; message?: string };
+            try {
+                data = JSON.parse(textBody);
+            } catch (parseErr) {
+                console.error('Failed to parse JSON response:', parseErr, 'Body:', textBody);
+                alert('Error parsing plan response');
+                return '';
+            }
+
+            const planText = data.plan ?? data.message ?? '';
+            console.log('Plan text received:', planText);
+
+            if (!planText) {
+                alert('No plan returned from the server');
+                return '';
+            }
+
+            return planText;
+        } catch (err) {
+            console.error('Error generating plan:', err);
+            alert('Error generating plan');
+            return '';
+        }
+    };
 
   return (
     <div className="app">
@@ -227,538 +284,115 @@ const BudgetTracker: React.FC = () => {
           </div>
         </div>
 
-        {/* Goal context section (multi-goal) */}
-        <div className="goal-card container" style={{ marginBottom: 24 }}>
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0 }}>{strings.goalSectionTitle}</h3>
-            <button type="button" onClick={addNewGoal} aria-label="Add goal">＋</button>
-          </div>
-
-          {goals.length === 0 && (
-            <div className="hint">Add your first goal with the ＋ button.</div>
-          )}
-
-          {goals.map((goal) => (
-            <div key={goal.id} className="stack" style={{ borderTop: '1px solid #eee', paddingTop: 12 }}>
-              {/* Per-goal actions */}
-              <div className="row" style={{ justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => deleteGoal(goal.id)} aria-label="Delete goal">
-                  {strings.delete}
-                </button>
-              </div>
-
-              {/* Title + Goal type */}
-              <div className="row">
-                <label htmlFor={`wish-${goal.id}`} className="sr-only">{strings.wishLabel}</label>
-                <input
-                  id={`wish-${goal.id}`}
-                  type="text"
-                  value={goal.wish}
-                  onChange={(e) => updateGoal(goal.id, { wish: e.target.value })}
-                  placeholder={strings.wishPlaceholder}
-                  required
-                  style={{ flex: 1 }}
-                />
-
-                <label htmlFor={`goalType-${goal.id}`} className="sr-only">{strings.goalTypeLabel}</label>
-                <select
-                  id={`goalType-${goal.id}`}
-                  value={goal.goalType}
-                  onChange={(e) => updateGoal(goal.id, { goalType: e.target.value })}
-                >
-                  <option value="emergency">{strings.goalTypeOptions.emergency}</option>
-                  <option value="debt">{strings.goalTypeOptions.debt}</option>
-                  <option value="device">{strings.goalTypeOptions.device}</option>
-                  <option value="travel">{strings.goalTypeOptions.travel}</option>
-                  <option value="tuition">{strings.goalTypeOptions.tuition}</option>
-                  <option value="move">{strings.goalTypeOptions.move}</option>
-                  <option value="build">{strings.goalTypeOptions.build}</option>
-                  <option value="other">{strings.goalTypeOptions.other}</option>
-                </select>
-
-                {goal.goalType === 'other' && (
-                  <input
-                    aria-label={strings.goalTypeOtherLabel}
-                    type="text"
-                    value={goal.goalTypeOther}
-                    onChange={(e) => updateGoal(goal.id, { goalTypeOther: e.target.value })}
-                    placeholder={strings.goalTypeOtherLabel}
-                  />
-                )}
-              </div>
-
-              {/* Target amount + Not sure */}
-              <div className="row">
-                <label htmlFor={`targetAmount-${goal.id}`} className="sr-only">{strings.targetAmountLabel}</label>
-                <input
-                  id={`targetAmount-${goal.id}`}
-                  type="number"
-                  placeholder={strings.targetAmountPlaceholder}
-                  value={goal.targetAmountUnknown ? '' : (goal.targetAmount === 0 ? '' : goal.targetAmount)}
-                  onChange={(e) => updateGoal(goal.id, { targetAmount: e.target.value === '' ? 0 : Number(e.target.value) })}
-                  min={0}
-                  disabled={goal.targetAmountUnknown}
-                />
-                <label className="row" style={{ gap: 8 }}>
-                  <input
-                    type="checkbox"
-                    checked={goal.targetAmountUnknown}
-                    onChange={(e) => updateGoal(goal.id, { targetAmountUnknown: e.target.checked })}
-                  />
-                  {strings.targetAmountUnknown}
-                </label>
-              </div>
-
-              {/* Dates with visible labels */}
-              <div className="row">
-                <div className="stack">
-                  <label htmlFor={`start-${goal.id}`}>{strings.startDateLabel}</label>
-                  <input
-                    id={`start-${goal.id}`}
-                    type="date"
-                    value={goal.startDate}
-                    onChange={(e) => updateGoal(goal.id, { startDate: e.target.value })}
-                  />
-                </div>
-
-                <div className="stack">
-                  <label htmlFor={`target-${goal.id}`}>{strings.targetDateLabel}</label>
-                  <input
-                    id={`target-${goal.id}`}
-                    type="date"
-                    value={goal.targetDate}
-                    onChange={(e) => updateGoal(goal.id, { targetDate: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {/* Flexibility */}
-              <div className="row" role="group" aria-label={strings.flexibilityLabel}>
-                <span className="hint">{strings.flexibilityLabel}:</span>
-                <label className="row">
-                  <input
-                    type="radio"
-                    name={`flex-${goal.id}`}
-                    checked={goal.flexibility === 'hard'}
-                    onChange={() => updateGoal(goal.id, { flexibility: 'hard' })}
-                  />
-                  {strings.flexibilityHard}
-                </label>
-                <label className="row">
-                  <input
-                    type="radio"
-                    name={`flex-${goal.id}`}
-                    checked={goal.flexibility === 'soft'}
-                    onChange={() => updateGoal(goal.id, { flexibility: 'soft' })}
-                  />
-                  {strings.flexibilitySoft}
-                </label>
-              </div>
-
-              {/* Current savings, priority, risk */}
-              <div className="row">
-                <label htmlFor={`currentSavings-${goal.id}`} className="sr-only">{strings.currentSavingsLabel}</label>
-                <input
-                  id={`currentSavings-${goal.id}`}
-                  type="number"
-                  value={goal.currentSavings === 0 ? '' : goal.currentSavings}
-                  onChange={(e) => updateGoal(goal.id, { currentSavings: e.target.value === '' ? 0 : Number(e.target.value) })}
-                  placeholder={strings.currentSavingsLabel}
-                  min={0}
-                />
-
-                <label htmlFor={`priority-${goal.id}`} className="sr-only">{strings.priorityLabel}</label>
-                <select
-                  id={`priority-${goal.id}`}
-                  value={goal.priority}
-                  onChange={(e) => updateGoal(goal.id, { priority: e.target.value as Goal['priority'] })}
-                >
-                  <option value="high">{strings.priorityOptions.high}</option>
-                  <option value="medium">{strings.priorityOptions.medium}</option>
-                  <option value="low">{strings.priorityOptions.low}</option>
-                </select>
-
-                <label htmlFor={`risk-${goal.id}`} className="sr-only">{strings.riskLabel}</label>
-                <select
-                  id={`risk-${goal.id}`}
-                  value={goal.riskProfile}
-                  onChange={(e) => updateGoal(goal.id, { riskProfile: e.target.value as Goal['riskProfile'] })}
-                >
-                  <option value="conservative">{strings.riskOptions.conservative}</option>
-                  <option value="balanced">{strings.riskOptions.balanced}</option>
-                  <option value="aggressive">{strings.riskOptions.aggressive}</option>
-                </select>
-              </div>
-
-              {/* Non-negotiables chips */}
-              <div className="stack">
-                <label htmlFor={`nonneg-${goal.id}`} className="sr-only">{strings.nonNegotiablesLabel}</label>
-                <div className="row">
-                  <input
-                    id={`nonneg-${goal.id}`}
-                    type="text"
-                    value={nonNegInputMap[goal.id] ?? ''}
-                    onChange={(e) => setNonNegInputFor(goal.id, e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addNonNeg(goal.id); } }}
-                    placeholder={strings.nonNegotiablesPlaceholder}
-                    style={{ flex: 1 }}
-                  />
-                  <button onClick={() => addNonNeg(goal.id)}>{strings.add}</button>
-                </div>
-                {goal.nonNegotiables.length > 0 && (
-                  <div className="chips" aria-label={strings.nonNegotiablesLabel}>
-                    {goal.nonNegotiables.map((v) => (
-                      <span key={v} className="chip">
-                        {v}
-                        <button aria-label="remove" onClick={() => removeNonNeg(goal.id, v)}>×</button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Motivation */}
-              <div className="row">
-                <label htmlFor={`motivation-${goal.id}`} className="sr-only">{strings.motivationLabel}</label>
-                <input
-                  id={`motivation-${goal.id}`}
-                  type="text"
-                  value={goal.motivation}
-                  onChange={(e) => updateGoal(goal.id, { motivation: e.target.value })}
-                  placeholder={strings.motivationPlaceholder}
-                  style={{ flex: 1 }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Tab switcher */}
+        <nav className="tabs" style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 12 }}>
+          <button onClick={() => setActiveTab('goal')} className={activeTab === 'goal' ? 'active' : ''}>{strings.goalSectionTitle}</button>
+          <button onClick={() => setActiveTab('setup')} className={activeTab === 'setup' ? 'active' : ''}>{strings.monthlyBudgetSetup}</button>
+          <button onClick={() => setActiveTab('dashboard')} className={activeTab === 'dashboard' ? 'active' : ''}>{strings.budgetDashboard}</button>
+          <button onClick={() => setActiveTab('plan')} className={activeTab === 'plan' ? 'active' : ''}>{strings.generatePlan}</button>
+        </nav>
       </header>
-      
-      {/* Income / Allowance (Optional) */}
-      <div>
-        <label htmlFor="incomeAllowance">Income / Allowance </label>
-        <input
-          id="incomeAllowance"
-          type="number"
-          placeholder="e.g. 2000"
-          value={incomeAllowance}
-          onChange={(e) => setIncomeAllowance(e.target.value === '' ? 0 : Number(e.target.value))}
-        />
-      </div>
 
       <main className="container">
-        {/* Budget Setup */}
-        <section className="stack">
-          <h2 style={{ textAlign: 'center' }}>{strings.monthlyBudgetSetup}</h2>
+        {activeTab === 'goal' && (
+          <GoalTab
+            strings={strings}
+            goals={goals}
+            nonNegInputMap={nonNegInputMap}
+            setNonNegInputFor={setNonNegInputFor}
+            updateGoal={updateGoal}
+            addNewGoal={addNewGoal}
+            addNonNeg={addNonNeg}
+            removeNonNeg={removeNonNeg}
+            deleteGoal={deleteGoal}
+          />
+        )}
 
-          <div className="stack">
-            <div className="stack">
-              <label htmlFor="totalBudget">{strings.totalMonthlyBudget}</label>
-              <div className="row">
-                <input
-                  id="totalBudget"
-                  type="number"
-                  value={totalBudget === 0 ? '' : totalBudget}
-                  onChange={(e) => setTotalBudget(e.target.value === '' ? 0 : Number(e.target.value))}
-                  placeholder={strings.budgetAmountPlaceholder}
-                  required
-                  min={0}
-                />
-                <div className="hint">{`Remaining to allocate: ${formatCurrency(Math.max(0, remainingToAllocate))}`}</div>
-              </div>
-            </div>
+        {activeTab === 'setup' && (
+          <>
+            <MonthlyBudgetSetup
+                          strings={strings}
+                          styles={styles}
+                          currentBudget={currentBudget}
+                          incomeAllowance={incomeAllowance}
+                          setIncomeAllowance={setIncomeAllowance}
+                          totalBudget={totalBudget}
+                          setTotalBudget={(n) => { setTotalBudget(n); if (!currentBudget && n > 0) { const currentMonth = getCurrentMonth(); const newBudget: Budget = { id: `budget-${currentMonth}`, month: currentMonth, incomeAllowance: n, totalBudget: n, categories: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; setCurrentBudget(newBudget); } } }
+                          remainingToAllocate={remainingToAllocate}
+                          newCategoryName={newCategoryName}
+                          setNewCategoryName={setNewCategoryName}
+                          newCategoryAmount={newCategoryAmount}
+                          setNewCategoryAmount={setNewCategoryAmount}
+                          newCategoryDate={newCategoryDate}
+                          setNewCategoryDate={setNewCategoryDate}
+                          newCategoryDescription={newCategoryDescription}
+                          setNewCategoryDescription={setNewCategoryDescription}
+                          addCategory={addCategory}
+                          startEditCategory={startEditCategory}
+                          editingCategoryId={editingCategoryId}
+                          categoryDraft={categoryDraft}
+                          setCategoryDraft={setCategoryDraft}
+                          saveEditedCategory={saveEditedCategory}
+                          cancelEditCategory={cancelEditCategory}
+                          deleteCategory={deleteCategory} expenseAmount={0} setExpenseAmount={function (n: number): void {
+                              throw new Error('Function not implemented.');
+                          } } expenseCategory={''} setExpenseCategory={function (s: string): void {
+                              throw new Error('Function not implemented.');
+                          } } expenseDate={''} setExpenseDate={function (s: string): void {
+                              throw new Error('Function not implemented.');
+                          } } expenseDescription={''} setExpenseDescription={function (s: string): void {
+                              throw new Error('Function not implemented.');
+                          } } addExpense={function (e?: React.FormEvent): void {
+                              throw new Error('Function not implemented.');
+                          } }            />
 
-            <div className="stack">
-              <h3>{strings.addBudgetCategory}</h3>
-
-              <div className="row">
-                <label htmlFor="catName" className="sr-only">{strings.categoryName}</label>
-                <input
-                  id="catName"
-                  type="text"
-                  placeholder={strings.categoryNamePlaceholder}
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  required
-                />
-
-                <label htmlFor="catAmount" className="sr-only">{strings.budgetAmount}</label>
-                <input
-                  id="catAmount"
-                  type="number"
-                  placeholder={strings.budgetAmountPlaceholder}
-                  value={newCategoryAmount === 0 ? '' : newCategoryAmount}
-                  onChange={(e) => setNewCategoryAmount(e.target.value === '' ? 0 : Number(e.target.value))}
-                  min={1}
-                  required
-                />
-
-                <label htmlFor="catDate" className="sr-only">{strings.date}</label>
-                <input
-                  id="catDate"
-                  type="date"
-                  value={newCategoryDate}
-                  onChange={(e) => setNewCategoryDate(e.target.value)}
-                  required
-                />
-
-                <label htmlFor="catDesc" className="sr-only">{strings.description}</label>
-                <textarea
-                  id="catDesc"
-                  placeholder={strings.description}
-                  value={newCategoryDescription}
-                  onChange={(e) => setNewCategoryDescription(e.target.value)}
-                  required
-                />
-
-                <button onClick={addCategory} disabled={newCategoryAmount > remainingToAllocate}>
-                  {strings.addCategory}
-                </button>
-              </div>
-            </div>
-
-            {currentBudget && currentBudget.categories.length > 0 && (
-              <div className="categories-list">
-                <h3>{strings.budgetCategories}</h3>
-                {currentBudget.categories.map((cat) => (
-                  <div key={cat.id} className="category-item">
-                    {editingCategoryId === cat.id ? (
-                      <div className="category-edit">
-                        <div className="row">
-                          <input
-                            aria-label={strings.categoryName}
-                            type="text"
-                            value={categoryDraft.name ?? ''}
-                            onChange={(e) => setCategoryDraft(d => ({ ...d, name: e.target.value }))}
-                          />
-                          <input
-                            aria-label={strings.budgetAmount}
-                            type="number"
-                            min={1}
-                            value={categoryDraft.amount == null || categoryDraft.amount === 0 ? '' : categoryDraft.amount}
-                            onChange={(e) =>
-                              setCategoryDraft(d => ({ ...d, amount: e.target.value === '' ? 0 : Number(e.target.value) }))
-                            }
-                          />
-                          <input
-                            aria-label={strings.date}
-                            type="date"
-                            value={categoryDraft.date ?? ''}
-                            onChange={(e) => setCategoryDraft(d => ({ ...d, date: e.target.value }))}
-                          />
-                        </div>
-                        <textarea
-                          aria-label={strings.description}
-                          value={categoryDraft.description ?? ''}
-                          onChange={(e) => setCategoryDraft(d => ({ ...d, description: e.target.value }))}
-                        />
-                        <div className="row-actions">
-                          <button onClick={saveEditedCategory}>{strings.save}</button>
-                          <button onClick={cancelEditCategory}>{strings.cancel}</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="category-view">
-                        <div className="row" style={{ justifyContent: 'space-between' }}>
-                          <div><strong>{cat.name}</strong>: {formatCurrency(cat.amount)}</div>
-                          <div className="row-actions">
-                            <button aria-label="Edit category" onClick={() => startEditCategory(cat)}>✏️</button>
-                            {/* NEW: delete category */}
-                            <button aria-label="Delete category" onClick={() => deleteCategory(cat.id)}>{strings.delete}</button>
-                          </div>
-                        </div>
-                        <div className="hint">{strings.date}: {cat.date}</div>
-                        <div style={{ whiteSpace: 'pre-wrap' }}>{cat.description}</div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                <div className="save-row">
-                  <button onClick={saveBudget} className="save-budget">{strings.saveBudget}</button>
-                </div>
-              </div>
+            {/* Expense entry shown under setup to keep tabs minimal */}
+            {currentBudget && (
+              <section className="stack" style={{ marginTop: 24 }}>
+                <h2 style={{ textAlign: 'center' }}>{strings.addExpense}</h2>
+                <form onSubmit={addExpense} className="row">
+                  <input id="expAmount" type="number" placeholder={strings.expenseAmountPlaceholder} value={expenseAmount === 0 ? '' : expenseAmount} onChange={(e) => setExpenseAmount(e.target.value === '' ? 0 : Number(e.target.value))} required min={1} />
+                  <select id="expCategory" name="expenseCategory" value={expenseCategory} onChange={(e) => setExpenseCategory(e.target.value)} required>
+                    <option value="">{strings.selectCategory}</option>
+                    {currentBudget.categories.map(category => (<option key={category.id} value={category.name}>{category.name}</option>))}
+                  </select>
+                  <input id="expDate" type="date" value={expenseDate} onChange={(e) => setExpenseDate(e.target.value)} required />
+                  <textarea id="expDesc" placeholder={strings.expenseDescriptionPlaceholder} value={expenseDescription} onChange={(e) => setExpenseDescription(e.target.value)} required />
+                  <button type="submit">{strings.addExpenseButton}</button>
+                </form>
+              </section>
             )}
-          </div>
-        </section>
-
-        {/* Expense Entry */}
-        {currentBudget && (
-          <section className="stack" style={{ marginTop: 24 }}>
-            <h2 style={{ textAlign: 'center' }}>{strings.addExpense}</h2>
-
-            <form onSubmit={addExpense} className="row">
-              <label htmlFor="expAmount" className="sr-only">{strings.expenseAmount}</label>
-              <input
-                id="expAmount"
-                type="number"
-                placeholder={strings.expenseAmountPlaceholder}
-                value={expenseAmount === 0 ? '' : expenseAmount}
-                onChange={(e) => setExpenseAmount(e.target.value === '' ? 0 : Number(e.target.value))}
-                required
-                min={1}
-              />
-
-              <label htmlFor="expCategory" className="sr-only">{strings.selectCategory}</label>
-              <select
-                id="expCategory"
-                name="expenseCategory"
-                value={expenseCategory}
-                onChange={(e) => setExpenseCategory(e.target.value)}
-                required
-              >
-                <option value="">{strings.selectCategory}</option>
-                {currentBudget.categories.map(category => (
-                  <option key={category.id} value={category.name}>{category.name}</option>
-                ))}
-              </select>
-
-              <label htmlFor="expDate" className="sr-only">{strings.date}</label>
-              <input
-                id="expDate"
-                type="date"
-                value={expenseDate}
-                onChange={(e) => setExpenseDate(e.target.value)}
-                required
-              />
-
-              <label htmlFor="expDesc" className="sr-only">{strings.expenseDescription}</label>
-              <textarea
-                id="expDesc"
-                placeholder={strings.expenseDescriptionPlaceholder}
-                value={expenseDescription}
-                onChange={(e) => setExpenseDescription(e.target.value)}
-                required
-              />
-
-              <button type="submit">{strings.addExpenseButton}</button>
-            </form>
-          </section>
+          </>
         )}
 
-        {/* Dashboard */}
-        {currentBudget && categorySummaries.length > 0 && (
-          <section className="stack" style={{ marginTop: 24 }}>
-            <h2 style={{ textAlign: 'center' }}>
-              {strings.budgetDashboard} - {currentBudget.month}
-            </h2>
-
-            <div className="dashboard-grid">
-              {categorySummaries.map(summary => (
-                <div key={summary.categoryName} className="category-card">
-                  <h4>{summary.categoryName}</h4>
-
-                  {/* Visual progress bar */}
-                  <div className="progress-bar" aria-hidden="true">
-                    <div
-                      className="progress-fill"
-                      style={{
-                        width: `${summary.percentBar}%`,
-                        backgroundColor: summary.percentRaw > 100 ? '#ef4444' : '#10b981'
-                      }}
-                    />
-                  </div>
-
-                  {/* Accessible progress for AT */}
-                  <progress
-                    className="sr-only"
-                    value={Math.round(summary.percentBar)}
-                    max={100}
-                    aria-label={`${summary.categoryName} progress`}
-                  />
-
-                  <div className="category-stats">
-                    <span>{strings.budget}: {formatCurrency(summary.budgeted)}</span>
-                    <span>{strings.spent}: {formatCurrency(summary.spent)}</span>
-                    <span>{strings.remaining}: {formatCurrency(summary.remaining)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+        {activeTab === 'dashboard' && (
+          <BudgetDashboard strings={strings} currentBudget={currentBudget!} categorySummaries={categorySummaries} expenses={expenses} startEditExpense={startEditExpense} deleteExpense={deleteExpense} />
         )}
 
-        {/* Expenses list (editable) */}
-        {expenses.length > 0 && (
-          <section className="stack" style={{ marginTop: 24 }}>
-            <h2 style={{ textAlign: 'center' }}>{strings.recentExpenses}</h2>
+        {activeTab === 'plan' && (
+        <>
+            <GeneratePlan
+            strings={strings}
+            canGeneratePlan={canGeneratePlan}
+            onGenerate={async () => {
+                // Include extra notes in the request
+                return await onGenerate(extraNotes);
+            }}
+            expensesCount={expenses.length}
+            />
 
-            <div className="expenses-list">
-              {expenses.map(expense => (
-                <div key={expense.id} className="expense-item">
-                  {editingExpenseId === expense.id ? (
-                    <div className="expense-edit">
-                      <div className="row">
-                        <input
-                          aria-label={strings.expenseAmount}
-                          type="number"
-                          min={1}
-                          value={expenseDraft.amount == null || expenseDraft.amount === 0 ? '' : expenseDraft.amount}
-                          onChange={(e) =>
-                            setExpenseDraft(d => ({ ...d, amount: e.target.value === '' ? 0 : Number(e.target.value) }))
-                          }
-                        />
-                        <select
-                          aria-label={strings.selectCategory}
-                          value={expenseDraft.category ?? ''}
-                          onChange={(e) => setExpenseDraft(d => ({ ...d, category: e.target.value }))}
-                        >
-                          <option value="">{strings.selectCategory}</option>
-                          {currentBudget?.categories.map(c => (
-                            <option key={c.id} value={c.name}>{c.name}</option>
-                          ))}
-                        </select>
-                        <input
-                          aria-label={strings.date}
-                          type="date"
-                          value={expenseDraft.date ?? ''}
-                          onChange={(e) => setExpenseDraft(d => ({ ...d, date: e.target.value }))}
-                        />
-                      </div>
-                      <textarea
-                        aria-label={strings.description}
-                        value={expenseDraft.description ?? ''}
-                        onChange={(e) => setExpenseDraft(d => ({ ...d, description: e.target.value }))}
-                      />
-                      <div className="row-actions">
-                        <button onClick={saveEditedExpense}>{strings.save}</button>
-                        <button onClick={cancelEditExpense}>{strings.cancel}</button>
-                        {/* Optional delete while editing */}
-                        <button onClick={() => deleteExpense(expense.id)}>{strings.delete}</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-                        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                          <span><strong>{expense.description}</strong></span>
-                          <span style={{ color:'#6b7280' }}>{expense.category}</span>
-                        </div>
-                        <div className="hint">{strings.date}: {expense.date}</div>
-                      </div>
-                      <div className="expense-amount">{formatCurrency(expense.amount)}</div>
-                      <div className="row-actions">
-                        <button aria-label="Edit expense" onClick={() => startEditExpense(expense)}>✏️</button>
-                        {/* NEW: delete expense */}
-                        <button aria-label="Delete expense" onClick={() => deleteExpense(expense.id)}>{strings.delete}</button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="save-row" style={{ marginBottom: 8 }}>
-              <button onClick={saveAllExpenses}>{strings.saveExpensesButton}</button>
-            </div>
-          </section>
+            {/* Extra notes only visible in Generate Plan tab */}
+            <section className="stack" style={{ marginTop: 16 }}>
+            <h3>{strings.extraNotesTitle}</h3>
+            <textarea
+                placeholder={strings.extraNotesPlaceholder}
+                value={extraNotes}
+                onChange={(e) => setExtraNotes(e.target.value)}
+                rows={3}
+            />
+            </section>
+        </>
         )}
-
-        {/* Extra notes (FIXED) */}
-        <section className="stack" style={{ marginTop: 16 }}>
-          <h3>{strings.extraNotesTitle}</h3>
-          <textarea placeholder={strings.extraNotesPlaceholder} value={extraNotes} onChange={(e) => setExtraNotes(e.target.value)} rows={3} />
-        </section>
       </main>
     </div>
   );
