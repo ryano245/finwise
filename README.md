@@ -71,3 +71,4 @@ The budget tracker is divided into four main tabs:
 - **Contextual AI Training:** Improve the AI model to provide advice and plan suggestions that are more relevant to the current Indonesian financial context for youths.
 - **Enhanced Plan Reports:** Upgrade the generate-plan output from plain text to a more structured report with diagrams, charts, and visuals for easier understanding.
 - **Performance Optimization:** Optimize the app’s performance, especially the AI processing, to improve load times and scalability as more users engage simultaneously.
+- **UI/UX Improvements:** Refine the app interface to make it more user-friendly, intuitive, and enjoyable to navigate.
