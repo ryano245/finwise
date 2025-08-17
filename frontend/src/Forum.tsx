@@ -15,7 +15,7 @@ const Forum: React.FC = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/forum`);
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/confess`);
         const data = await res.json();
         setPosts(data);
       } catch (err) {
@@ -50,7 +50,7 @@ const Forum: React.FC = () => {
           {/* Conversation Preview */}
           <div
             style={{
-              border: "1px solid #ddd",
+              border: "1px solid #ccc",
               borderRadius: "8px",
               padding: "1rem",
               maxHeight: "300px",
@@ -59,29 +59,32 @@ const Forum: React.FC = () => {
               backgroundColor: "#f9f9f9",
             }}
           >
-            {post.conversation.map((msg, idx) => (
-              <div
-                key={idx}
-                style={{
-                  display: "flex",
-                  justifyContent: msg.sender === "user" ? "flex-end" : "flex-start",
-                  margin: "0.5rem 0",
-                }}
-              >
+            {post.conversation.map((msg, idx) => {
+              const sender = msg.sender || "bot"; // default to bot if missing
+              return (
                 <div
+                  key={idx}
                   style={{
-                    backgroundColor: msg.sender === "user" ? "#4f46e5" : "#e5e7eb",
-                    color: msg.sender === "user" ? "white" : "black",
-                    padding: "0.5rem 1rem",
-                    borderRadius: "10px",
-                    maxWidth: "70%",
-                    wordBreak: "break-word",
+                    display: "flex",
+                    justifyContent: sender === "user" ? "flex-end" : "flex-start",
+                    margin: "0.5rem 0",
                   }}
                 >
-                  <ReactMarkdown>{msg.text}</ReactMarkdown>
+                  <div
+                    style={{
+                      backgroundColor: sender === "user" ? "#4f46e5" : "#e5e7eb",
+                      color: sender === "user" ? "white" : "black",
+                      padding: "0.5rem 1rem",
+                      borderRadius: "10px",
+                      maxWidth: "70%",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    <ReactMarkdown>{msg.text}</ReactMarkdown>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Caption at the bottom */}

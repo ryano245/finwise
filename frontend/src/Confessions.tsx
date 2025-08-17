@@ -211,27 +211,44 @@ const Confessions: React.FC = () => {
         </button>
       </div>
 
-      {/* Go to Post Page */}
-      {messages.length > 0 && (
-        <button
-          onClick={goToPostPage}
-          style={{
-            marginTop: "1rem",
-            width: "100%",
-            padding: "0.5rem 1rem",
-            borderRadius: "20px",
-            border: "none",
-            backgroundColor: "#4f46e5",
-            color: "white",
-            cursor: "pointer",
-          }}
-        >
-          {currentLanguage === "en" 
-            ? "Post Conversation Anonymously"
-            : "Posting Percakapan Secara Anonim"
-          }
-        </button>
-      )}
+      {/* Post Conversation Anonymously Button */}
+{messages.length > 0 && (
+  <button
+    onClick={goToPostPage}
+    style={{
+      marginTop: "1rem",
+      width: "100%",
+      padding: "0.5rem 1rem",
+      borderRadius: "20px",
+      border: "none",
+      backgroundColor: "#4f46e5",
+      color: "white",
+      cursor: "pointer",
+    }}
+  >
+    {currentLanguage === "en"
+      ? "Post Conversation Anonymously"
+      : "Posting Percakapan Secara Anonim"}
+  </button>
+)}
+
+{/* Go to Forum Button */}
+<button
+  onClick={() => navigate("/forum")}
+  style={{
+    marginTop: "0.5rem",
+    width: "100%",
+    padding: "0.5rem 1rem",
+    borderRadius: "20px",
+    border: "none",
+    backgroundColor: "#10b981", // green color
+    color: "white",
+    cursor: "pointer",
+  }}
+>
+  {currentLanguage === "en" ? "Go to Forum" : "Ke Forum"}
+</button>
+
     </div>
   );
 };
