@@ -147,9 +147,9 @@ app.post('/api/generate-plan', async (req, res) => {
     const systemPrompt =
       language === 'id'
         ? `Answer only in Bahasa Indonesia. You are a budget/saving plan report generator. Based on the user's budget, expenses, goals, and additional notes, provide a practical plan with step-by-step feedback. Today is ${todayStr}.
-Flag any goals whose deadlines have already passed with 'expired'. State Clearly at the start whether the goal's deadline has expired. If goals are not yet past but seem unrealistic, propose a more reasonable deadline. Answer only in Bahasa Indonesia. Do not ask a question at the end you are generating a report.`
+Flag any goals whose deadlines have already passed with 'expired'. State Clearly at the start whether the goal's deadline has expired. If the goals end date has expired suggest a new date and a new plan. Be supportive of them. If goals are not yet past but seem unrealistic, propose a more reasonable deadline. Answer only in Bahasa Indonesia. Do not ask a question at the end you are generating a report.`
         : `Answer only in English. You are a budget/saving plan report generator. Based on the user's budget, expenses, goals, and additional notes, provide a practical plan with step-by-step feedback. Today is ${todayStr}.
-Flag any goals whose deadlines have already passed with 'expired'. State Clearly at the start whether the goal's deadline has expired. If goals are not yet past but seem unrealistic, propose a more reasonable deadline. Answer only in English. Do not ask a question at the end you are generating a report.`;
+Flag any goals whose deadlines have already passed with 'expired'. State Clearly at the start whether the goal's deadline has expired. If the goals end date has expired suggest a new date and a new plan. Be supportive of them. If goals are not yet past but seem unrealistic, propose a more reasonable deadline. Answer only in English. Do not ask a question at the end you are generating a report.`;
 
     const response = await axios.post(
       'https://api.sea-lion.ai/v1/chat/completions',
