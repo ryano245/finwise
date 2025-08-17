@@ -214,20 +214,25 @@ export default function GoalTab({
 
               {showTooltip && (
                 <div
+                  role="dialog"
+                  aria-modal="false"
                   style={{
-                    position: 'absolute',
-                    top: '25px',
+                    position: 'fixed',
+                    top: 96,               // adjust if you want it closer/farther from the top
                     left: '50%',
                     transform: 'translateX(-50%)',
                     backgroundColor: '#000',
-                    color: 'white',
-                    padding: '12px 16px',
-                    borderRadius: 8,
+                    color: '#fff',
+                    padding: '16px 18px',
+                    borderRadius: 10,
                     fontSize: 14,
-                    zIndex: 10,
-                    width: 200,
-                    textAlign: 'center',
-                    opacity: 1,
+                    lineHeight: 1.5,
+                    zIndex: 1000,
+                    width: 'min(420px, calc(100% - 32px))',
+                    boxShadow: '0 12px 32px rgba(0,0,0,.35)',
+                    maxHeight: '70vh',
+                    overflowY: 'auto',
+                    textAlign: 'left',
                   }}
                 >
                   {strings.goaltooltip ||
