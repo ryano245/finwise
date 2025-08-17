@@ -129,7 +129,7 @@ const Post: React.FC = () => {
           padding: "0.5rem 1rem",
           borderRadius: "20px",
           border: "none",
-          backgroundColor: "#16a34a",
+          backgroundColor: "#4f46e5",
           color: "white",
           cursor: "pointer",
         }}
