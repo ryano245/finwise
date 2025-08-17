@@ -16,7 +16,7 @@ export default function BudgetDashboard({ strings, currentBudget, categorySummar
 
   return (
     <section className="stack">
-      <h2 style={{ textAlign: 'center' }}>{strings.budgetDashboard} - {currentBudget.month}</h2>
+      <h2 style={{ textAlign: 'center' }}>{strings.budgetDashboard}</h2>
 
       <div className="dashboard-grid">
         {categorySummaries.map(summary => (
