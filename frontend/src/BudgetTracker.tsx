@@ -365,15 +365,6 @@ const BudgetTracker: React.FC = () => {
 
         {activeTab === 'plan' && (
         <>
-            <GeneratePlan
-            strings={strings}
-            canGeneratePlan={canGeneratePlan}
-            onGenerate={async () => {
-                // Include extra notes in the request
-                return await onGenerate(extraNotes);
-            }}
-            expensesCount={expenses.length}
-            />
 
             {/* Extra notes only visible in Generate Plan tab */}
             <section className="stack" style={{ marginTop: 16 }}>
@@ -385,6 +376,16 @@ const BudgetTracker: React.FC = () => {
                 rows={3}
             />
             </section>
+
+            <GeneratePlan
+            strings={strings}
+            canGeneratePlan={canGeneratePlan}
+            onGenerate={async () => {
+                // Include extra notes in the request
+                return await onGenerate(extraNotes);
+            }}
+            expensesCount={expenses.length}
+            />
         </>
         )}
       </main>
