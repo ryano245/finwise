@@ -4,7 +4,7 @@
 
 ### 🌐 Language Support
 
-- Switch seamlessly between **English** and **Indonesian** across the entire app.
+- Switch seamlessly between **English** and **Bahasa Indonesian** across the entire app.
 
 ---
 
