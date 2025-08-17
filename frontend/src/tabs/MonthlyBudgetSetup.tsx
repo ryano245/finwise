@@ -6,6 +6,8 @@ type Props = {
   strings: LanguageStrings;
   styles: string;
   currentBudget: Budget | null;
+  incomeAllowance: number;
+  setIncomeAllowance: (n: number) => void;
   totalBudget: number;
   setTotalBudget: (n: number) => void;
   remainingToAllocate: number;
@@ -40,7 +42,7 @@ type Props = {
 
 export default function MonthlyBudgetSetup(props: Props) {
   const {
-    strings, styles, currentBudget, totalBudget, setTotalBudget, remainingToAllocate,
+    strings, styles, currentBudget, incomeAllowance, setIncomeAllowance, totalBudget, setTotalBudget, remainingToAllocate,
     newCategoryName, setNewCategoryName, newCategoryAmount, setNewCategoryAmount, newCategoryDate, setNewCategoryDate,
     newCategoryDescription, setNewCategoryDescription, addCategory,
     startEditCategory, editingCategoryId, categoryDraft, setCategoryDraft, saveEditedCategory, cancelEditCategory, deleteCategory,
@@ -49,7 +51,7 @@ export default function MonthlyBudgetSetup(props: Props) {
 
   return (
     <>
-      {/* Budget + Categories card */}
+      {/* Income + Savings + Budget + Categories card */}
       <div className="panel-card container" style={{ padding: 16 }}>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <h2 style={{ margin: 0 }}>{strings.monthlyBudgetSetup}</h2>
@@ -58,6 +60,32 @@ export default function MonthlyBudgetSetup(props: Props) {
         <hr style={{ margin: '1rem 0', border: '0.5px solid lightgrey' }} />
 
         <div className="stack">
+
+        <div className="stack">
+            <label
+              htmlFor="incomeAllowance"
+              style={{ textAlign: 'left', display: 'block', width: '100%' }}
+            >
+              <strong>{strings.incomeAllowance}</strong>
+            </label>
+
+            <div className="row">
+              <input
+                id="incomeAllowance"
+                type="number"
+                value={incomeAllowance === 0 ? '' : incomeAllowance}
+                onChange={(e) => {
+                  const income = e.target.value === '' ? 0 : Number(e.target.value);
+                  setIncomeAllowance(income);
+                }}
+                placeholder={strings.budgetAmountPlaceholder}
+                required
+                min={0}
+              />
+              <div className="hint">{`If 0 Income or Allowance, leave this empty`}</div>
+            </div>
+          </div>
+
           <div className="stack">
             <label
               htmlFor="totalBudget"

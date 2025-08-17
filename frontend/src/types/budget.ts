@@ -14,6 +14,7 @@ export interface CategoryBudget {
 export interface Budget {
   id?: string;
   month: string; // Not in use
+  incomeAllowance: number;
   totalBudget: number;
   categories: CategoryBudget[];
   createdAt: string;          // ISO

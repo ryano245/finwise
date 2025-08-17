@@ -44,6 +44,7 @@ export interface LanguageStrings {
   motivationPlaceholder: string;
 
   monthlyBudgetSetup: string;
+  incomeAllowance: string;
   totalMonthlyBudget: string;
   addBudgetCategory: string;
   categoryName: string;
@@ -133,7 +134,8 @@ export const englishStrings: LanguageStrings = {
   motivationLabel: "Motivation (1 sentence)",
   motivationPlaceholder: "Why is this goal important to you?",
 
-  monthlyBudgetSetup: "Monthly Budget Setup",
+  monthlyBudgetSetup: "Monthly Finances Setup",
+  incomeAllowance: "Monthly Income / Allowance",
   totalMonthlyBudget: "Total Monthly Budget:",
   addBudgetCategory: "Add Budget Category",
   categoryName: "Category Name",
@@ -222,7 +224,8 @@ export const indonesianStrings: LanguageStrings = {
   motivationLabel: "Motivasi (1 kalimat)",
   motivationPlaceholder: "Kenapa tujuan ini penting?",
 
-  monthlyBudgetSetup: "Setup Budget Bulanan",
+  monthlyBudgetSetup: "Setup Keuangan Bulanan",
+  incomeAllowance: "Gagi / Tunjangan Bulanan",
   totalMonthlyBudget: "Total Budget Bulanan:",
   addBudgetCategory: "Tambah Kategori Budget",
   categoryName: "Nama Kategori",

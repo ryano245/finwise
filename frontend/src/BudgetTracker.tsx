@@ -48,6 +48,7 @@ const BudgetTracker: React.FC = () => {
   const [expenseDraft, setExpenseDraft] = useState<Partial<Expense>>({});
 
   const [totalBudget, setTotalBudget] = useState<number>(0);
+  const [incomeAllowance, setIncomeAllowance] = useState<number>(0);
 
   const [goals, setGoals] = useState<Goal[]>(() => {
     const raw = localStorage.getItem('goals_v1');
@@ -99,9 +100,10 @@ const BudgetTracker: React.FC = () => {
         } else if (raw.categories && typeof raw.categories === 'object') {
           categories = Object.entries(raw.categories).map(([name, amount], i) => ({ id: `cat-${i}-${name}`, name, amount: Number(amount), date: `${currentMonth}-01`, description: '' }));
         }
-        const budget: Budget = { id: raw.id ?? `budget-${currentMonth}`, month: raw.month ?? currentMonth, totalBudget: Number(raw.totalBudget ?? 0), categories, createdAt: raw.createdAt ?? new Date().toISOString(), updatedAt: raw.updatedAt ?? new Date().toISOString() };
+        const budget: Budget = { id: raw.id ?? `budget-${currentMonth}`, month: raw.month ?? currentMonth, incomeAllowance: Number(raw.incomeAllowance ?? 0), totalBudget: Number(raw.totalBudget ?? 0), categories, createdAt: raw.createdAt ?? new Date().toISOString(), updatedAt: raw.updatedAt ?? new Date().toISOString() };
         setCurrentBudget(budget);
         setTotalBudget(budget.totalBudget);
+        setIncomeAllowance(budget.incomeAllowance)
       }
 
       const storedExpenses = localStorage.getItem(`expenses-${currentMonth}`);
@@ -315,8 +317,10 @@ const BudgetTracker: React.FC = () => {
                           strings={strings}
                           styles={styles}
                           currentBudget={currentBudget}
+                          incomeAllowance={incomeAllowance}
+                          setIncomeAllowance={setIncomeAllowance}
                           totalBudget={totalBudget}
-                          setTotalBudget={(n) => { setTotalBudget(n); if (!currentBudget && n > 0) { const currentMonth = getCurrentMonth(); const newBudget: Budget = { id: `budget-${currentMonth}`, month: currentMonth, totalBudget: n, categories: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; setCurrentBudget(newBudget); } } }
+                          setTotalBudget={(n) => { setTotalBudget(n); if (!currentBudget && n > 0) { const currentMonth = getCurrentMonth(); const newBudget: Budget = { id: `budget-${currentMonth}`, month: currentMonth, incomeAllowance: n, totalBudget: n, categories: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; setCurrentBudget(newBudget); } } }
                           remainingToAllocate={remainingToAllocate}
                           newCategoryName={newCategoryName}
                           setNewCategoryName={setNewCategoryName}
