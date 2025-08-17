@@ -82,7 +82,8 @@ export default function MonthlyBudgetSetup(props: Props) {
                 required
                 min={0}
               />
-              </div>
+              <div className="hint">{`If 0 Income or Allowance, leave this empty`}</div>
+            </div>
           </div>
 
           <div className="stack">

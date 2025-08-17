@@ -271,6 +271,9 @@ const BudgetTracker: React.FC = () => {
         }
     };
 
+
+
+
   return (
     <div className="app">
       <style>{styles}</style>
