@@ -40,7 +40,7 @@ export default function GeneratePlan({ strings, canGeneratePlan, onGenerate, exp
         </div>
       )}
 
-      <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
         <button
           onClick={handleGenerate}
           disabled={!canGeneratePlan || loading}
