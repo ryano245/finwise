@@ -67,7 +67,7 @@ const BudgetTracker: React.FC = () => {
     setCurrentBudget(updatedBudget);
     localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(updatedBudget));
   }
-}, [incomeAllowance, totalBudget, currentBudget]);
+}, [incomeAllowance, totalBudget]);
 
 
   const [goals, setGoals] = useState<Goal[]>(() => {
@@ -184,7 +184,17 @@ const BudgetTracker: React.FC = () => {
     cancelEditCategory();
   };
 
-  const deleteCategory = (id: string) => { if (!currentBudget) return; if (editingCategoryId === id) cancelEditCategory(); setCurrentBudget({ ...currentBudget, categories: currentBudget.categories.filter(c => c.id !== id) }); };
+  const deleteCategory = (id: string) => { 
+    if (!currentBudget) return; 
+    if (editingCategoryId === id) cancelEditCategory(); 
+    const updatedBudget: Budget = {
+      ...currentBudget,
+      categories: currentBudget.categories.filter(c => c.id !== id),
+      updatedAt: new Date().toISOString(),
+    };
+    setCurrentBudget(updatedBudget); 
+    localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(updatedBudget));
+  };
 
   const addExpense = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
