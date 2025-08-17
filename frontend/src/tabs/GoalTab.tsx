@@ -1,8 +1,7 @@
 // File: frontend/src/components/GoalTab.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import type { Goal } from '../types/budget';
 import type { LanguageStrings } from '../utilities/budget';
-import { useState } from 'react';
 
 type Props = {
   strings: LanguageStrings;
@@ -16,13 +15,29 @@ type Props = {
   deleteGoal: (id: string) => void;
 };
 
-export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInputFor, updateGoal, addNewGoal, addNonNeg, removeNonNeg, deleteGoal }: Props) {
-  const [showTooltip, setShowTooltip] = useState(false);  // State to track tooltip visibility
+export default function GoalTab({
+  strings,
+  goals,
+  nonNegInputMap,
+  setNonNegInputFor,
+  updateGoal,
+  addNewGoal,
+  addNonNeg,
+  removeNonNeg,
+  deleteGoal,
+}: Props) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
   return (
     <div className="goal-card container">
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ margin: 0 }}>Your Goals</h3>
-        <button type="button" onClick={addNewGoal} aria-label="Add goal">＋</button>
+      <div
+        className="row"
+        style={{ justifyContent: 'space-between', alignItems: 'center' }}
+      >
+        <h3 style={{ margin: 0 }}>{strings.goalSectionTitle}</h3>
+          <button type="button" onClick={addNewGoal} aria-label="Add goal">
+            ＋
+          </button>
       </div>
 
       {goals.length === 0 && (
@@ -30,13 +45,27 @@ export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInput
       )}
 
       {goals.map((goal) => (
-        <div key={goal.id} className="stack" style={{ borderTop: '1px solid #eee', paddingTop: 12 }}>
-          <div className="row" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
-            <h3 style={{ flex: 1, textAlign: 'left' }}>What's your goal?</h3>
-            <button type="button" onClick={() => deleteGoal(goal.id)} aria-label="Delete goal">{strings.delete}</button>
+        <div
+          key={goal.id}
+          className="stack"
+          style={{ borderTop: '1px solid #eee', paddingTop: 12 }}
+        >
+          <div
+            className="row"
+            style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}
+          >
+            <h3 style={{ flex: 1, textAlign: 'left' }}>{strings.wishLabel}</h3>
+            <button
+              type="button"
+              onClick={() => deleteGoal(goal.id)}
+              aria-label="Delete goal"
+            >
+              {strings.delete}
+            </button>
             <button type="button">{strings.save}</button>
           </div>
 
+          {/* Goal wish + type */}
           <div className="row">
             <input
               id={`wish-${goal.id}`}
@@ -68,19 +97,32 @@ export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInput
                 aria-label={strings.goalTypeOtherLabel}
                 type="text"
                 value={goal.goalTypeOther}
-                onChange={(e) => updateGoal(goal.id, { goalTypeOther: e.target.value })}
+                onChange={(e) =>
+                  updateGoal(goal.id, { goalTypeOther: e.target.value })
+                }
                 placeholder={strings.goalTypeOtherLabel}
               />
             )}
           </div>
 
+          {/* Target amount */}
           <div className="row">
             <input
               id={`targetAmount-${goal.id}`}
               type="number"
               placeholder={strings.targetAmountPlaceholder}
-              value={goal.targetAmountUnknown ? '' : (goal.targetAmount === 0 ? '' : goal.targetAmount)}
-              onChange={(e) => updateGoal(goal.id, { targetAmount: e.target.value === '' ? 0 : Number(e.target.value) })}
+              value={
+                goal.targetAmountUnknown
+                  ? ''
+                  : goal.targetAmount === 0
+                  ? ''
+                  : goal.targetAmount
+              }
+              onChange={(e) =>
+                updateGoal(goal.id, {
+                  targetAmount: e.target.value === '' ? 0 : Number(e.target.value),
+                })
+              }
               min={0}
               disabled={goal.targetAmountUnknown}
             />
@@ -88,12 +130,15 @@ export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInput
               <input
                 type="checkbox"
                 checked={goal.targetAmountUnknown}
-                onChange={(e) => updateGoal(goal.id, { targetAmountUnknown: e.target.checked })}
+                onChange={(e) =>
+                  updateGoal(goal.id, { targetAmountUnknown: e.target.checked })
+                }
               />
               {strings.targetAmountUnknown}
             </label>
           </div>
 
+          {/* Dates */}
           <div className="row">
             <div className="stack">
               <label htmlFor={`start-${goal.id}`}>{strings.startDateLabel}</label>
@@ -101,21 +146,28 @@ export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInput
                 id={`start-${goal.id}`}
                 type="date"
                 value={goal.startDate}
-                onChange={(e) => updateGoal(goal.id, { startDate: e.target.value })}
+                onChange={(e) =>
+                  updateGoal(goal.id, { startDate: e.target.value })
+                }
               />
             </div>
 
             <div className="stack">
-              <label htmlFor={`target-${goal.id}`}>{strings.targetDateLabel}</label>
+              <label htmlFor={`target-${goal.id}`}>
+                {strings.targetDateLabel}
+              </label>
               <input
                 id={`target-${goal.id}`}
                 type="date"
                 value={goal.targetDate}
-                onChange={(e) => updateGoal(goal.id, { targetDate: e.target.value })}
+                onChange={(e) =>
+                  updateGoal(goal.id, { targetDate: e.target.value })
+                }
               />
             </div>
           </div>
 
+          {/* Flexibility */}
           <div className="row" role="group" aria-label={strings.flexibilityLabel}>
             <span className="hint">{strings.flexibilityLabel}:</span>
             <label className="row">
@@ -127,7 +179,7 @@ export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInput
               />
               {strings.flexibilityHard}
             </label>
-            <label className="row">
+            <label className="row" style={{ position: 'relative' }}>
               <input
                 type="radio"
                 name={`flex-${goal.id}`}
@@ -138,29 +190,28 @@ export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInput
               <span
                 style={{
                   cursor: 'pointer',
-                  marginLeft: '8px',
+                  marginLeft: 8,
                   display: 'inline-flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  width: '20px',
-                  height: '20px',
+                  width: 20,
+                  height: 20,
                   borderRadius: '50%',
-                  backgroundColor: '#000000',
+                  backgroundColor: '#000',
                   color: 'white',
-                  fontSize: '14px',
+                  fontSize: 14,
                   fontWeight: 'bold',
-                  verticalAlign: 'middle'
+                  verticalAlign: 'middle',
                 }}
                 aria-label="Tooltip"
                 role="img"
                 aria-hidden="true"
-                onMouseEnter={() => setShowTooltip(true)}  // Show tooltip on hover
-                onMouseLeave={() => setShowTooltip(false)}  // Hide tooltip when mouse leaves
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
               >
                 i
               </span>
 
-              {/* Tooltip Popup */}
               {showTooltip && (
                 <div
                   style={{
@@ -168,30 +219,35 @@ export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInput
                     top: '25px',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    backgroundColor: '#000',  // Solid black background
+                    backgroundColor: '#000',
                     color: 'white',
-                    padding: '12px 16px',  // Increased padding for better spacing
-                    borderRadius: '8px',   // Rounded corners
-                    fontSize: '14px',      // Slightly bigger text
-                    zIndex: '10',
-                    width: '200px',
+                    padding: '12px 16px',
+                    borderRadius: 8,
+                    fontSize: 14,
+                    zIndex: 10,
+                    width: 200,
                     textAlign: 'center',
-                    opacity: 1,            // Full opacity (no transparency)
-                    visibility: 'visible', // Make sure it's visible
+                    opacity: 1,
                   }}
                 >
-                  {strings.goaltooltip || 'This is a tooltip describing the flexibility options.'}
+                  {strings.goaltooltip ||
+                    'This is a tooltip describing the flexibility options.'}
                 </div>
               )}
             </label>
           </div>
 
+          {/* Current savings, priority, risk */}
           <div className="row">
             <input
               id={`currentSavings-${goal.id}`}
               type="number"
               value={goal.currentSavings === 0 ? '' : goal.currentSavings}
-              onChange={(e) => updateGoal(goal.id, { currentSavings: e.target.value === '' ? 0 : Number(e.target.value) })}
+              onChange={(e) =>
+                updateGoal(goal.id, {
+                  currentSavings: e.target.value === '' ? 0 : Number(e.target.value),
+                })
+              }
               placeholder={strings.currentSavingsLabel}
               min={0}
             />
@@ -200,7 +256,11 @@ export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInput
             <select
               id={`priority-${goal.id}`}
               value={goal.priority}
-              onChange={(e) => updateGoal(goal.id, { priority: e.target.value as Goal['priority'] })}
+              onChange={(e) =>
+                updateGoal(goal.id, {
+                  priority: e.target.value as Goal['priority'],
+                })
+              }
             >
               <option value="high">{strings.priorityOptions.high}</option>
               <option value="medium">{strings.priorityOptions.medium}</option>
@@ -211,22 +271,31 @@ export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInput
             <select
               id={`risk-${goal.id}`}
               value={goal.riskProfile}
-              onChange={(e) => updateGoal(goal.id, { riskProfile: e.target.value as Goal['riskProfile'] })}
+              onChange={(e) =>
+                updateGoal(goal.id, {
+                  riskProfile: e.target.value as Goal['riskProfile'],
+                })
+              }
             >
-              <option value="conservative">{strings.riskOptions.conservative}</option>
+              <option value="conservative">
+                {strings.riskOptions.conservative}
+              </option>
               <option value="balanced">{strings.riskOptions.balanced}</option>
-              <option value="aggressive">{strings.riskOptions.aggressive}</option>
+              <option value="aggressive">
+                {strings.riskOptions.aggressive}
+              </option>
             </select>
           </div>
 
-          
-
+          {/* Motivation */}
           <div className="row">
             <input
               id={`motivation-${goal.id}`}
               type="text"
               value={goal.motivation}
-              onChange={(e) => updateGoal(goal.id, { motivation: e.target.value })}
+              onChange={(e) =>
+                updateGoal(goal.id, { motivation: e.target.value })
+              }
               placeholder={strings.motivationPlaceholder}
               style={{ flex: 1 }}
             />

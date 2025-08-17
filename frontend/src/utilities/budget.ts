@@ -94,7 +94,7 @@ export const englishStrings: LanguageStrings = {
   planGenerationError: "Failed to generate plan.",
   appTitle: "Finwise - Budget Tracker",
 
-  goalSectionTitle: "Goals",
+  goalSectionTitle: "Your Goals",
   wishLabel: "What do you wish for?",
   wishPlaceholder: "e.g., Buy a laptop for school, build 3-month emergency fund, pay off paylater",
 
@@ -247,7 +247,7 @@ export const indonesianStrings: LanguageStrings = {
   saveExpensesButton: "Simpan Pengeluaran",
   expenseAdded: "Pengeluaran berhasil ditambahkan!",
 
-  budgetDashboard: "Dashboard Budget",
+  budgetDashboard: "Anggaran Dasbor",
   budget: "Budget", spent: "Terpakai", remaining: "Sisa", percentage: "Persentase",
   recentExpenses: "Pengeluaran Terbaru",
 
