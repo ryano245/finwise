@@ -7,7 +7,6 @@ export interface CategoryBudget {
   id: string;
   name: string;
   amount: number;
-  date: string;        // YYYY-MM-DD
   description: string; // unlimited length
 }
 

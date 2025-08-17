@@ -33,7 +33,6 @@ const BudgetTracker: React.FC = () => {
 
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryAmount, setNewCategoryAmount] = useState<number>(0);
-  const [newCategoryDate, setNewCategoryDate] = useState<string>('');
   const [newCategoryDescription, setNewCategoryDescription] = useState<string>('');
 
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
@@ -130,11 +129,11 @@ const BudgetTracker: React.FC = () => {
   const addCategory = () => {
     if (!currentBudget) return;
     const name = newCategoryName.trim();
-    if (!name || !newCategoryAmount || !newCategoryDate || !newCategoryDescription.trim()) { alert(strings.requiredField); return; }
+    if (!name || !newCategoryAmount || !newCategoryDescription.trim()) { alert(strings.requiredField); return; }
     const exists = currentBudget.categories.some((c) => c.name.toLowerCase() === name.toLowerCase());
     if (exists) { alert(strings.dupCategoryWarning); return; }
     if (newCategoryAmount > remainingToAllocate) { alert(`Cannot allocate more than remaining: ${formatCurrency(remainingToAllocate)}`); return; }
-    const newCat: CategoryBudget = { id: `cat-${Date.now()}`, name, amount: newCategoryAmount, date: newCategoryDate, description: newCategoryDescription.trim() };
+    const newCat: CategoryBudget = { id: `cat-${Date.now()}`, name, amount: newCategoryAmount, description: newCategoryDescription.trim() };
     const updatedBudget: Budget = {
         ...currentBudget,
         categories: [...currentBudget.categories, newCat],
@@ -143,7 +142,7 @@ const BudgetTracker: React.FC = () => {
     };
     setCurrentBudget(updatedBudget);
     localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(updatedBudget));
-    setNewCategoryName(''); setNewCategoryAmount(0); setNewCategoryDate(''); setNewCategoryDescription('');
+    setNewCategoryName(''); setNewCategoryAmount(0); setNewCategoryDescription('');
     alert(strings.budgetSaved);
   };
 
@@ -153,14 +152,13 @@ const BudgetTracker: React.FC = () => {
     if (!currentBudget || !editingCategoryId || !categoryDraft) return;
     const name = (categoryDraft.name ?? '').trim();
     const amount = Number(categoryDraft.amount ?? 0);
-    const date = (categoryDraft.date ?? '').trim();
     const description = (categoryDraft.description ?? '').trim();
-    if (!name || !amount || !date || !description) { alert(strings.requiredField); return; }
+    if (!name || !amount || !description) { alert(strings.requiredField); return; }
     const dup = currentBudget.categories.some(c => c.id !== editingCategoryId && c.name.toLowerCase() === name.toLowerCase());
     if (dup) { alert(strings.dupCategoryWarning); return; }
     const totalIfSaved = currentBudget.categories.reduce((acc, c) => { if (c.id === editingCategoryId) return acc + amount; return acc + c.amount; }, 0);
     if (totalIfSaved > totalBudget) { alert(`Total of category caps would exceed total budget (${formatCurrency(totalBudget)}).`); return; }
-    const updatedCats = currentBudget.categories.map((c) => c.id === editingCategoryId ? { ...c, name, amount, date, description } : c);
+    const updatedCats = currentBudget.categories.map((c) => c.id === editingCategoryId ? { ...c, name, amount, description } : c);
     setCurrentBudget({ ...currentBudget, categories: updatedCats });
     cancelEditCategory();
   };
@@ -296,7 +294,7 @@ const BudgetTracker: React.FC = () => {
         </nav>
       </header>
 
-      <main className="container">
+      <main className="container" style={{ paddingBottom: "4rem" }}>
         {activeTab === 'goal' && (
           <GoalTab
             strings={strings}
@@ -326,8 +324,6 @@ const BudgetTracker: React.FC = () => {
                           setNewCategoryName={setNewCategoryName}
                           newCategoryAmount={newCategoryAmount}
                           setNewCategoryAmount={setNewCategoryAmount}
-                          newCategoryDate={newCategoryDate}
-                          setNewCategoryDate={setNewCategoryDate}
                           newCategoryDescription={newCategoryDescription}
                           setNewCategoryDescription={setNewCategoryDescription}
                           addCategory={addCategory}
@@ -337,19 +333,19 @@ const BudgetTracker: React.FC = () => {
                           setCategoryDraft={setCategoryDraft}
                           saveEditedCategory={saveEditedCategory}
                           cancelEditCategory={cancelEditCategory}
-                          deleteCategory={deleteCategory} expenseAmount={0} setExpenseAmount={function (n: number): void {
-                              throw new Error('Function not implemented.');
-                          } } expenseCategory={''} setExpenseCategory={function (s: string): void {
-                              throw new Error('Function not implemented.');
-                          } } expenseDate={''} setExpenseDate={function (s: string): void {
-                              throw new Error('Function not implemented.');
-                          } } expenseDescription={''} setExpenseDescription={function (s: string): void {
-                              throw new Error('Function not implemented.');
-                          } } addExpense={function (e?: React.FormEvent): void {
-                              throw new Error('Function not implemented.');
-                          } }            />
+                          deleteCategory={deleteCategory} 
+                          expenseAmount={expenseAmount}
+                          setExpenseAmount={setExpenseAmount}
+                          expenseCategory={expenseCategory}
+                          setExpenseCategory={setExpenseCategory}
+                          expenseDate={expenseDate}
+                          setExpenseDate={setExpenseDate}
+                          expenseDescription={expenseDescription}
+                          setExpenseDescription={setExpenseDescription}
+                          addExpense={addExpense}
+                          />
 
-            {/* Expense entry shown under setup to keep tabs minimal */}
+            {/* // Expense entry shown under setup to keep tabs minimal
             {currentBudget && (
               <section className="stack" style={{ marginTop: 24 }}>
                 <h2 style={{ textAlign: 'center' }}>{strings.addExpense}</h2>
@@ -364,7 +360,7 @@ const BudgetTracker: React.FC = () => {
                   <button type="submit">{strings.addExpenseButton}</button>
                 </form>
               </section>
-            )}
+            )} */}
           </>
         )}
 

@@ -15,8 +15,6 @@ type Props = {
   setNewCategoryName: (s: string) => void;
   newCategoryAmount: number;
   setNewCategoryAmount: (n: number) => void;
-  newCategoryDate: string;
-  setNewCategoryDate: (s: string) => void;
   newCategoryDescription: string;
   setNewCategoryDescription: (s: string) => void;
   addCategory: () => void;
@@ -43,7 +41,7 @@ type Props = {
 export default function MonthlyBudgetSetup(props: Props) {
   const {
     strings, styles, currentBudget, incomeAllowance, setIncomeAllowance, totalBudget, setTotalBudget, remainingToAllocate,
-    newCategoryName, setNewCategoryName, newCategoryAmount, setNewCategoryAmount, newCategoryDate, setNewCategoryDate,
+    newCategoryName, setNewCategoryName, newCategoryAmount, setNewCategoryAmount,
     newCategoryDescription, setNewCategoryDescription, addCategory,
     startEditCategory, editingCategoryId, categoryDraft, setCategoryDraft, saveEditedCategory, cancelEditCategory, deleteCategory,
     expenseAmount, setExpenseAmount, expenseCategory, setExpenseCategory, expenseDate, setExpenseDate, expenseDescription, setExpenseDescription, addExpense
@@ -134,7 +132,6 @@ export default function MonthlyBudgetSetup(props: Props) {
                       <div className="row">
                         <input aria-label={strings.categoryName} type="text" value={categoryDraft.name ?? ''} onChange={(e) => setCategoryDraft({ ...categoryDraft, name: e.target.value })} />
                         <input aria-label={strings.budgetAmount} type="number" min={1} value={categoryDraft.amount == null || categoryDraft.amount === 0 ? '' : categoryDraft.amount} onChange={(e) => setCategoryDraft({ ...categoryDraft, amount: e.target.value === '' ? 0 : Number(e.target.value) })} />
-                        <input aria-label={strings.date} type="date" value={categoryDraft.date ?? ''} onChange={(e) => setCategoryDraft({ ...categoryDraft, date: e.target.value })} />
                       </div>
                       <textarea aria-label={strings.description} value={categoryDraft.description ?? ''} onChange={(e) => setCategoryDraft({ ...categoryDraft, description: e.target.value })} />
                       <div className="row-actions">
@@ -151,7 +148,6 @@ export default function MonthlyBudgetSetup(props: Props) {
                           <button aria-label="Delete category" onClick={() => deleteCategory(cat.id)}>{strings.delete}</button>
                         </div>
                       </div>
-                      <div className="hint">{strings.date}: {cat.date}</div>
                       <div style={{ whiteSpace: 'pre-wrap' }}>{cat.description}</div>
                     </div>
                   )}
