@@ -6,6 +6,8 @@ type Props = {
   strings: LanguageStrings;
   styles: string;
   currentBudget: Budget | null;
+  incomeAllowance: number;
+  setIncomeAllowance: (n: number) => void;
   totalBudget: number;
   setTotalBudget: (n: number) => void;
   remainingToAllocate: number;
@@ -13,12 +15,9 @@ type Props = {
   setNewCategoryName: (s: string) => void;
   newCategoryAmount: number;
   setNewCategoryAmount: (n: number) => void;
-  newCategoryDate: string;
-  setNewCategoryDate: (s: string) => void;
   newCategoryDescription: string;
   setNewCategoryDescription: (s: string) => void;
   addCategory: () => void;
-  saveBudget: () => void;
   startEditCategory: (cat: CategoryBudget) => void;
   editingCategoryId: string | null;
   categoryDraft: Partial<CategoryBudget>;
@@ -41,16 +40,16 @@ type Props = {
 
 export default function MonthlyBudgetSetup(props: Props) {
   const {
-    strings, styles, currentBudget, totalBudget, setTotalBudget, remainingToAllocate,
-    newCategoryName, setNewCategoryName, newCategoryAmount, setNewCategoryAmount, newCategoryDate, setNewCategoryDate,
-    newCategoryDescription, setNewCategoryDescription, addCategory, saveBudget,
+    strings, styles, currentBudget, incomeAllowance, setIncomeAllowance, totalBudget, setTotalBudget, remainingToAllocate,
+    newCategoryName, setNewCategoryName, newCategoryAmount, setNewCategoryAmount,
+    newCategoryDescription, setNewCategoryDescription, addCategory,
     startEditCategory, editingCategoryId, categoryDraft, setCategoryDraft, saveEditedCategory, cancelEditCategory, deleteCategory,
     expenseAmount, setExpenseAmount, expenseCategory, setExpenseCategory, expenseDate, setExpenseDate, expenseDescription, setExpenseDescription, addExpense
   } = props;
 
   return (
     <>
-      {/* Budget + Categories card */}
+      {/* Income + Savings + Budget + Categories card */}
       <div className="panel-card container" style={{ padding: 16 }}>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <h2 style={{ margin: 0 }}>{strings.monthlyBudgetSetup}</h2>
@@ -59,6 +58,32 @@ export default function MonthlyBudgetSetup(props: Props) {
         <hr style={{ margin: '1rem 0', border: '0.5px solid lightgrey' }} />
 
         <div className="stack">
+
+        <div className="stack">
+            <label
+              htmlFor="incomeAllowance"
+              style={{ textAlign: 'left', display: 'block', width: '100%' }}
+            >
+              <strong>{strings.incomeAllowance}</strong>
+            </label>
+
+            <div className="row">
+              <input
+                id="incomeAllowance"
+                type="number"
+                value={incomeAllowance === 0 ? '' : incomeAllowance}
+                onChange={(e) => {
+                  const income = e.target.value === '' ? 0 : Number(e.target.value);
+                  setIncomeAllowance(income);
+                }}
+                placeholder={strings.budgetAmountPlaceholder}
+                required
+                min={0}
+              />
+              <div className="hint">{`If 0 Income or Allowance, leave this empty`}</div>
+            </div>
+          </div>
+
           <div className="stack">
             <label
               htmlFor="totalBudget"
@@ -92,7 +117,6 @@ export default function MonthlyBudgetSetup(props: Props) {
             <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
               <input id="catName" type="text" placeholder={strings.categoryNamePlaceholder} value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} required />
               <input id="catAmount" type="number" placeholder={strings.budgetAmountPlaceholder} value={newCategoryAmount === 0 ? '' : newCategoryAmount} onChange={(e) => setNewCategoryAmount(e.target.value === '' ? 0 : Number(e.target.value))} min={1} required />
-              <input id="catDate" type="date" value={newCategoryDate} onChange={(e) => setNewCategoryDate(e.target.value)} required />
               <textarea id="catDesc" placeholder={strings.description} value={newCategoryDescription} onChange={(e) => setNewCategoryDescription(e.target.value)} required style={{ flex: 1 }} />
               <button onClick={addCategory} disabled={newCategoryAmount > remainingToAllocate}>{strings.addCategory}</button>
             </div>
@@ -108,7 +132,6 @@ export default function MonthlyBudgetSetup(props: Props) {
                       <div className="row">
                         <input aria-label={strings.categoryName} type="text" value={categoryDraft.name ?? ''} onChange={(e) => setCategoryDraft({ ...categoryDraft, name: e.target.value })} />
                         <input aria-label={strings.budgetAmount} type="number" min={1} value={categoryDraft.amount == null || categoryDraft.amount === 0 ? '' : categoryDraft.amount} onChange={(e) => setCategoryDraft({ ...categoryDraft, amount: e.target.value === '' ? 0 : Number(e.target.value) })} />
-                        <input aria-label={strings.date} type="date" value={categoryDraft.date ?? ''} onChange={(e) => setCategoryDraft({ ...categoryDraft, date: e.target.value })} />
                       </div>
                       <textarea aria-label={strings.description} value={categoryDraft.description ?? ''} onChange={(e) => setCategoryDraft({ ...categoryDraft, description: e.target.value })} />
                       <div className="row-actions">
@@ -125,16 +148,11 @@ export default function MonthlyBudgetSetup(props: Props) {
                           <button aria-label="Delete category" onClick={() => deleteCategory(cat.id)}>{strings.delete}</button>
                         </div>
                       </div>
-                      <div className="hint">{strings.date}: {cat.date}</div>
                       <div style={{ whiteSpace: 'pre-wrap' }}>{cat.description}</div>
                     </div>
                   )}
                 </div>
               ))}
-
-              <div className="save-row" style={{ marginTop: 12 }}>
-                <button onClick={saveBudget} className="save-budget">{strings.saveBudget}</button>
-              </div>
             </div>
           )}
         </div>
@@ -145,6 +163,10 @@ export default function MonthlyBudgetSetup(props: Props) {
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <h2 style={{ margin: 0 }}>{strings.addExpense}</h2>
         </div>
+
+        <p style={{ marginBottom: '1rem', color: '#6b7280', fontSize: '1rem', textAlign: 'left' }}>
+          {strings.addExpenseDescription}
+        </p>
 
         <hr style={{ margin: '1rem 0', border: '0.5px solid lightgrey' }} />
 

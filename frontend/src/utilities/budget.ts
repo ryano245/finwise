@@ -44,6 +44,7 @@ export interface LanguageStrings {
   motivationPlaceholder: string;
 
   monthlyBudgetSetup: string;
+  incomeAllowance: string;
   totalMonthlyBudget: string;
   addBudgetCategory: string;
   categoryName: string;
@@ -85,6 +86,8 @@ export interface LanguageStrings {
 
   // <-- ADD THIS
   planOutputPlaceholder: string;
+  addExpenseDescription: string;
+  goaltooltip: string;
 }
 
 export const englishStrings: LanguageStrings = {
@@ -131,7 +134,8 @@ export const englishStrings: LanguageStrings = {
   motivationLabel: "Motivation (1 sentence)",
   motivationPlaceholder: "Why is this goal important to you?",
 
-  monthlyBudgetSetup: "Monthly Budget Setup",
+  monthlyBudgetSetup: "Monthly Finances Setup",
+  incomeAllowance: "Monthly Income / Allowance",
   totalMonthlyBudget: "Total Monthly Budget:",
   addBudgetCategory: "Add Budget Category",
   categoryName: "Category Name",
@@ -160,7 +164,7 @@ export const englishStrings: LanguageStrings = {
   date: "Date",
   description: "Description",
 
-  extraNotesTitle: "Is there anything else you want to let us know?",
+  extraNotesTitle: "Is there anything else you want to let the AI know?",
   extraNotesPlaceholder: "Add any extra context (optional)…",
 
   generatePlan: "Generate Plan",
@@ -171,7 +175,9 @@ export const englishStrings: LanguageStrings = {
   dupCategoryWarning: "Category already exists (case-insensitive).",
   requiredField: "This field is required.",
 
-  planOutputPlaceholder: "Your generated plan will appear here."
+  planOutputPlaceholder: "Your generated plan will appear here.",
+  addExpenseDescription: "Your expenses information can be viewed in the Budget Dashboard page.",
+  goaltooltip: "When setting your goal's priority, think about how important this goal is to you and how soon you want to achieve it. If you select High, it means this goal is urgent and should take precedence over others. A Medium priority indicates that the goal is important but can be achieved in a reasonable timeframe with some flexibility. If you choose Low, it means the goal is less urgent, and you're comfortable with a longer period to achieve it.\n Your risk profile helps determine how aggressively you want to pursue your goal. A Conservative risk profile suggests you prefer low-risk strategies, focusing on safety and stability. A Balanced profile means you're open to a moderate level of risk, using a mix of safe and potentially higher-risk strategies. An Aggressive profile indicates you're willing to take on higher risks for the chance to achieve your goal faster, possibly using more volatile investments or strategies."
 };
 
 export const indonesianStrings: LanguageStrings = {
@@ -218,7 +224,8 @@ export const indonesianStrings: LanguageStrings = {
   motivationLabel: "Motivasi (1 kalimat)",
   motivationPlaceholder: "Kenapa tujuan ini penting?",
 
-  monthlyBudgetSetup: "Setup Budget Bulanan",
+  monthlyBudgetSetup: "Setup Keuangan Bulanan",
+  incomeAllowance: "Gagi / Tunjangan Bulanan",
   totalMonthlyBudget: "Total Budget Bulanan:",
   addBudgetCategory: "Tambah Kategori Budget",
   categoryName: "Nama Kategori",
@@ -247,7 +254,7 @@ export const indonesianStrings: LanguageStrings = {
   date: "Tanggal",
   description: "Deskripsi",
 
-  extraNotesTitle: "Ada hal lain yang ingin Anda sampaikan?",
+  extraNotesTitle: "Apakah ada hal lain yang ingin Anda sampaikan kepada AI?",
   extraNotesPlaceholder: "Tambahkan konteks tambahan (opsional)…",
 
   generatePlan: "Buat Rencana",
@@ -258,5 +265,7 @@ export const indonesianStrings: LanguageStrings = {
   dupCategoryWarning: "Kategori sudah ada (abaikan besar/kecil huruf).",
   requiredField: "Wajib diisi.",
 
-  planOutputPlaceholder: "Rencana yang dihasilkan akan muncul di sini."
+  planOutputPlaceholder: "Rencana yang dihasilkan akan muncul di sini.",
+  addExpenseDescription: "Informasi pengeluaran Anda dapat dilihat di halaman Dashboard Budget.",
+  goaltooltip: "Saat menentukan prioritas tujuan Anda, pikirkan seberapa penting tujuan ini bagi Anda dan seberapa cepat Anda ingin mencapainya. Jika Anda memilih Tinggi, itu berarti tujuan ini mendesak dan harus diprioritaskan di atas yang lain. Prioritas Sedang menunjukkan bahwa tujuan ini penting, tetapi bisa dicapai dalam jangka waktu yang wajar dengan sedikit fleksibilitas. Jika Anda memilih Rendah, itu berarti tujuan ini kurang mendesak, dan Anda merasa nyaman dengan waktu yang lebih lama untuk mencapainya. \nProfil risiko Anda membantu menentukan seberapa agresif Anda ingin mengejar tujuan Anda. Profil risiko Konservatif menunjukkan bahwa Anda lebih memilih strategi dengan risiko rendah, fokus pada keamanan dan stabilitas. Profil Seimbang berarti Anda terbuka dengan tingkat risiko moderat, menggunakan campuran strategi aman dan yang berpotensi lebih berisiko. Profil Agresif menunjukkan bahwa Anda siap mengambil risiko tinggi untuk mencapai tujuan Anda lebih cepat, mungkin dengan menggunakan investasi atau strategi yang lebih volatil."
 };

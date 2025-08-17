@@ -2,6 +2,7 @@
 import React from 'react';
 import type { Goal } from '../types/budget';
 import type { LanguageStrings } from '../utilities/budget';
+import { useState } from 'react';
 
 type Props = {
   strings: LanguageStrings;
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInputFor, updateGoal, addNewGoal, addNonNeg, removeNonNeg, deleteGoal }: Props) {
+  const [showTooltip, setShowTooltip] = useState(false);  // State to track tooltip visibility
   return (
     <div className="goal-card container">
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -24,14 +26,15 @@ export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInput
       </div>
 
       {goals.length === 0 && (
-        <div className="hint">Add your first goal with the ＋ button.</div>
+        <div className="hint">Add your first goal with the + button.</div>
       )}
 
       {goals.map((goal) => (
         <div key={goal.id} className="stack" style={{ borderTop: '1px solid #eee', paddingTop: 12 }}>
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <h3>What's your goal?</h3>
+          <div className="row" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+            <h3 style={{ flex: 1, textAlign: 'left' }}>What's your goal?</h3>
             <button type="button" onClick={() => deleteGoal(goal.id)} aria-label="Delete goal">{strings.delete}</button>
+            <button type="button">{strings.save}</button>
           </div>
 
           <div className="row">
@@ -132,6 +135,54 @@ export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInput
                 onChange={() => updateGoal(goal.id, { flexibility: 'soft' })}
               />
               {strings.flexibilitySoft}
+              <span
+                style={{
+                  cursor: 'pointer',
+                  marginLeft: '8px',
+                  display: 'inline-flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  backgroundColor: '#000000',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  verticalAlign: 'middle'
+                }}
+                aria-label="Tooltip"
+                role="img"
+                aria-hidden="true"
+                onMouseEnter={() => setShowTooltip(true)}  // Show tooltip on hover
+                onMouseLeave={() => setShowTooltip(false)}  // Hide tooltip when mouse leaves
+              >
+                i
+              </span>
+
+              {/* Tooltip Popup */}
+              {showTooltip && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '25px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: '#000',  // Solid black background
+                    color: 'white',
+                    padding: '12px 16px',  // Increased padding for better spacing
+                    borderRadius: '8px',   // Rounded corners
+                    fontSize: '14px',      // Slightly bigger text
+                    zIndex: '10',
+                    width: '200px',
+                    textAlign: 'center',
+                    opacity: 1,            // Full opacity (no transparency)
+                    visibility: 'visible', // Make sure it's visible
+                  }}
+                >
+                  {strings.goaltooltip || 'This is a tooltip describing the flexibility options.'}
+                </div>
+              )}
             </label>
           </div>
 
@@ -168,30 +219,7 @@ export default function GoalTab({ strings, goals, nonNegInputMap, setNonNegInput
             </select>
           </div>
 
-          <div className="stack">
-            <div className="row">
-              <input
-                id={`nonneg-${goal.id}`}
-                type="text"
-                value={nonNegInputMap[goal.id] ?? ''}
-                onChange={(e) => setNonNegInputFor(goal.id, e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addNonNeg(goal.id); } }}
-                placeholder={strings.nonNegotiablesPlaceholder}
-                style={{ flex: 1 }}
-              />
-              <button onClick={() => addNonNeg(goal.id)}>{strings.add}</button>
-            </div>
-            {goal.nonNegotiables.length > 0 && (
-              <div className="chips" aria-label={strings.nonNegotiablesLabel}>
-                {goal.nonNegotiables.map((v) => (
-                  <span key={v} className="chip">
-                    {v}
-                    <button aria-label="remove" onClick={() => removeNonNeg(goal.id, v)}>×</button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+          
 
           <div className="row">
             <input

@@ -33,7 +33,6 @@ const BudgetTracker: React.FC = () => {
 
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryAmount, setNewCategoryAmount] = useState<number>(0);
-  const [newCategoryDate, setNewCategoryDate] = useState<string>('');
   const [newCategoryDescription, setNewCategoryDescription] = useState<string>('');
 
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
@@ -48,6 +47,7 @@ const BudgetTracker: React.FC = () => {
   const [expenseDraft, setExpenseDraft] = useState<Partial<Expense>>({});
 
   const [totalBudget, setTotalBudget] = useState<number>(0);
+  const [incomeAllowance, setIncomeAllowance] = useState<number>(0);
 
   const [goals, setGoals] = useState<Goal[]>(() => {
     const raw = localStorage.getItem('goals_v1');
@@ -99,9 +99,10 @@ const BudgetTracker: React.FC = () => {
         } else if (raw.categories && typeof raw.categories === 'object') {
           categories = Object.entries(raw.categories).map(([name, amount], i) => ({ id: `cat-${i}-${name}`, name, amount: Number(amount), date: `${currentMonth}-01`, description: '' }));
         }
-        const budget: Budget = { id: raw.id ?? `budget-${currentMonth}`, month: raw.month ?? currentMonth, totalBudget: Number(raw.totalBudget ?? 0), categories, createdAt: raw.createdAt ?? new Date().toISOString(), updatedAt: raw.updatedAt ?? new Date().toISOString() };
+        const budget: Budget = { id: raw.id ?? `budget-${currentMonth}`, month: raw.month ?? currentMonth, incomeAllowance: Number(raw.incomeAllowance ?? 0), totalBudget: Number(raw.totalBudget ?? 0), categories, createdAt: raw.createdAt ?? new Date().toISOString(), updatedAt: raw.updatedAt ?? new Date().toISOString() };
         setCurrentBudget(budget);
         setTotalBudget(budget.totalBudget);
+        setIncomeAllowance(budget.incomeAllowance)
       }
 
       const storedExpenses = localStorage.getItem(`expenses-${currentMonth}`);
@@ -128,13 +129,21 @@ const BudgetTracker: React.FC = () => {
   const addCategory = () => {
     if (!currentBudget) return;
     const name = newCategoryName.trim();
-    if (!name || !newCategoryAmount || !newCategoryDate || !newCategoryDescription.trim()) { alert(strings.requiredField); return; }
+    if (!name || !newCategoryAmount || !newCategoryDescription.trim()) { alert(strings.requiredField); return; }
     const exists = currentBudget.categories.some((c) => c.name.toLowerCase() === name.toLowerCase());
     if (exists) { alert(strings.dupCategoryWarning); return; }
     if (newCategoryAmount > remainingToAllocate) { alert(`Cannot allocate more than remaining: ${formatCurrency(remainingToAllocate)}`); return; }
-    const newCat: CategoryBudget = { id: `cat-${Date.now()}`, name, amount: newCategoryAmount, date: newCategoryDate, description: newCategoryDescription.trim() };
-    setCurrentBudget({ ...currentBudget, categories: [...currentBudget.categories, newCat] });
-    setNewCategoryName(''); setNewCategoryAmount(0); setNewCategoryDate(''); setNewCategoryDescription('');
+    const newCat: CategoryBudget = { id: `cat-${Date.now()}`, name, amount: newCategoryAmount, description: newCategoryDescription.trim() };
+    const updatedBudget: Budget = {
+        ...currentBudget,
+        categories: [...currentBudget.categories, newCat],
+        totalBudget,
+        updatedAt: new Date().toISOString(),
+    };
+    setCurrentBudget(updatedBudget);
+    localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(updatedBudget));
+    setNewCategoryName(''); setNewCategoryAmount(0); setNewCategoryDescription('');
+    alert(strings.budgetSaved);
   };
 
   const startEditCategory = (cat: CategoryBudget) => { setEditingCategoryId(cat.id); setCategoryDraft({ ...cat }); };
@@ -143,21 +152,18 @@ const BudgetTracker: React.FC = () => {
     if (!currentBudget || !editingCategoryId || !categoryDraft) return;
     const name = (categoryDraft.name ?? '').trim();
     const amount = Number(categoryDraft.amount ?? 0);
-    const date = (categoryDraft.date ?? '').trim();
     const description = (categoryDraft.description ?? '').trim();
-    if (!name || !amount || !date || !description) { alert(strings.requiredField); return; }
+    if (!name || !amount || !description) { alert(strings.requiredField); return; }
     const dup = currentBudget.categories.some(c => c.id !== editingCategoryId && c.name.toLowerCase() === name.toLowerCase());
     if (dup) { alert(strings.dupCategoryWarning); return; }
     const totalIfSaved = currentBudget.categories.reduce((acc, c) => { if (c.id === editingCategoryId) return acc + amount; return acc + c.amount; }, 0);
     if (totalIfSaved > totalBudget) { alert(`Total of category caps would exceed total budget (${formatCurrency(totalBudget)}).`); return; }
-    const updatedCats = currentBudget.categories.map((c) => c.id === editingCategoryId ? { ...c, name, amount, date, description } : c);
+    const updatedCats = currentBudget.categories.map((c) => c.id === editingCategoryId ? { ...c, name, amount, description } : c);
     setCurrentBudget({ ...currentBudget, categories: updatedCats });
     cancelEditCategory();
   };
 
   const deleteCategory = (id: string) => { if (!currentBudget) return; if (editingCategoryId === id) cancelEditCategory(); setCurrentBudget({ ...currentBudget, categories: currentBudget.categories.filter(c => c.id !== id) }); };
-
-  const saveBudget = () => { if (!currentBudget) return; const nowIso = new Date().toISOString(); const data: Budget = { ...currentBudget, totalBudget, updatedAt: nowIso }; localStorage.setItem(`budget-${currentBudget.month}`, JSON.stringify(data)); setCurrentBudget(data); alert(strings.budgetSaved); };
 
   const addExpense = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -288,7 +294,7 @@ const BudgetTracker: React.FC = () => {
         </nav>
       </header>
 
-      <main className="container">
+      <main className="container" style={{ paddingBottom: "4rem" }}>
         {activeTab === 'goal' && (
           <GoalTab
             strings={strings}
@@ -309,38 +315,37 @@ const BudgetTracker: React.FC = () => {
                           strings={strings}
                           styles={styles}
                           currentBudget={currentBudget}
+                          incomeAllowance={incomeAllowance}
+                          setIncomeAllowance={setIncomeAllowance}
                           totalBudget={totalBudget}
-                          setTotalBudget={(n) => { setTotalBudget(n); if (!currentBudget && n > 0) { const currentMonth = getCurrentMonth(); const newBudget: Budget = { id: `budget-${currentMonth}`, month: currentMonth, totalBudget: n, categories: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; setCurrentBudget(newBudget); } } }
+                          setTotalBudget={(n) => { setTotalBudget(n); if (!currentBudget && n > 0) { const currentMonth = getCurrentMonth(); const newBudget: Budget = { id: `budget-${currentMonth}`, month: currentMonth, incomeAllowance: n, totalBudget: n, categories: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; setCurrentBudget(newBudget); } } }
                           remainingToAllocate={remainingToAllocate}
                           newCategoryName={newCategoryName}
                           setNewCategoryName={setNewCategoryName}
                           newCategoryAmount={newCategoryAmount}
                           setNewCategoryAmount={setNewCategoryAmount}
-                          newCategoryDate={newCategoryDate}
-                          setNewCategoryDate={setNewCategoryDate}
                           newCategoryDescription={newCategoryDescription}
                           setNewCategoryDescription={setNewCategoryDescription}
                           addCategory={addCategory}
-                          saveBudget={saveBudget}
                           startEditCategory={startEditCategory}
                           editingCategoryId={editingCategoryId}
                           categoryDraft={categoryDraft}
                           setCategoryDraft={setCategoryDraft}
                           saveEditedCategory={saveEditedCategory}
                           cancelEditCategory={cancelEditCategory}
-                          deleteCategory={deleteCategory} expenseAmount={0} setExpenseAmount={function (n: number): void {
-                              throw new Error('Function not implemented.');
-                          } } expenseCategory={''} setExpenseCategory={function (s: string): void {
-                              throw new Error('Function not implemented.');
-                          } } expenseDate={''} setExpenseDate={function (s: string): void {
-                              throw new Error('Function not implemented.');
-                          } } expenseDescription={''} setExpenseDescription={function (s: string): void {
-                              throw new Error('Function not implemented.');
-                          } } addExpense={function (e?: React.FormEvent): void {
-                              throw new Error('Function not implemented.');
-                          } }            />
+                          deleteCategory={deleteCategory} 
+                          expenseAmount={expenseAmount}
+                          setExpenseAmount={setExpenseAmount}
+                          expenseCategory={expenseCategory}
+                          setExpenseCategory={setExpenseCategory}
+                          expenseDate={expenseDate}
+                          setExpenseDate={setExpenseDate}
+                          expenseDescription={expenseDescription}
+                          setExpenseDescription={setExpenseDescription}
+                          addExpense={addExpense}
+                          />
 
-            {/* Expense entry shown under setup to keep tabs minimal */}
+            {/* // Expense entry shown under setup to keep tabs minimal
             {currentBudget && (
               <section className="stack" style={{ marginTop: 24 }}>
                 <h2 style={{ textAlign: 'center' }}>{strings.addExpense}</h2>
@@ -355,7 +360,7 @@ const BudgetTracker: React.FC = () => {
                   <button type="submit">{strings.addExpenseButton}</button>
                 </form>
               </section>
-            )}
+            )} */}
           </>
         )}
 
