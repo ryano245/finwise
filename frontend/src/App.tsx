@@ -6,6 +6,7 @@ import Post from './Post';
 import Forum from './Forum';
 import Layout from './Layout';
 import './App.css';
+import image from './assets/logo.png';
 
 const App: React.FC = () => {
   return (
@@ -13,7 +14,13 @@ const App: React.FC = () => {
       <Layout>
         <Routes>
           <Route path="/" element={
-            <div className="home-page">
+            <div className="home-page" style={{ textAlign: "center" }}>
+                {/* Logo */}
+                <img
+                  src={image} // path to your logo file in public folder
+                  alt="Finwise Logo"
+                  height={250}
+                />
               <h1>Welcome to Finwise</h1>
               <div className="feature-buttons">
                 <Link to="/budget">
